@@ -1,9 +1,17 @@
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{pdfpages}
-\usepackage{listings}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+
+% môžeš ponechať Latin Modern, ale už ako Unicode font
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Consolas}
+
 \usepackage[slovak]{babel}
+
+\usepackage{pdfpages}
 \usepackage[a4paper]{geometry}
+
+\usepackage{listings}
 \usepackage{float}
 \usepackage{subcaption}
 \usepackage{graphicx}
@@ -17,11 +25,11 @@
 ]{dirtytalk}
 \usepackage{listings}
 \usepackage{xcolor}
-\lstset{
-    escapeinside={(*@}{@*)},
-    columns=flexible,
-    keepspaces=true
-}
+% \lstset{
+%     escapeinside={(*@) (@*)},
+%     columns=flexible,
+%     keepspaces=true
+% }
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -55,7 +63,7 @@
     sensitive=true,
     comment=[l]{--},
     morecomment=[s]{\{-}{-\}},
-    morestring=[b]",
+    morestring=[b]',
     morestring=[b]'
 }
 
@@ -69,7 +77,7 @@
     comment=[l]{//},
     morecomment=[s]{/*}{*/},
     morestring=[b]',
-    morestring=[b]"
+    morestring=[b]'
 }
 
 \lstdefinelanguage{TypeScript}{
@@ -82,12 +90,12 @@
     comment=[l]{//},
     morecomment=[s]{/*}{*/},
     morestring=[b]',
-    morestring=[b]"
+    morestring=[b]'
 }
 
 % SETTINGS - NAMES
 \newcommand{\myTitle}[0] {
-Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jazyka Elm}
+    Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jazyka Elm}
 \newcommand{\myName}[0] {René Bukovina}
 \newcommand{\mySupervisor}[0] {Ing. Ivan Kapustík}
 \newcommand{\myEvidenceNumber}[0] {FIIT-100241-110772}
@@ -111,7 +119,9 @@ Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jaz
 \setcounter{tocdepth}{3}
 
 \usepackage{tabularx}
+
 \newsavebox\mybox
+
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \lhead{\nouppercase{\leftmark}}
@@ -125,13 +135,13 @@ Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jaz
 %style=iso-numeric
 %style=authortitle-dw
 \usepackage[backend=bibtex,defernums=true,style=authoryear-comp]{biblatex}
-\defbibheading{references}[Literatúra]{ 
-  \chapter*{#1}
-  \markboth{#1}{#1}
+\defbibheading{references}[Literatúra]{
+    \chapter*{#1}
+    \markboth{#1}{#1}
 }
-\defbibheading{referencessec}[Literatúra]{ 
-  \section*{#1}
-  \markboth{#1}{#1}
+\defbibheading{referencessec}[Literatúra]{
+    \section*{#1}
+    \markboth{#1}{#1}
 }
 \bibliography{\myBibliography}
 
@@ -157,4 +167,4 @@ Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jaz
 \usepackage{titlesec}
 
 \titleformat{\chapter}[display]
-  {\normalfont\bfseries}{}{0pt}{\Huge}
+{\normalfont\bfseries}{}{0pt}{\Huge}

