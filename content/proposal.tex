@@ -1,0 +1,98 @@
+\chapter{Návrh riešenia: Bezpečnostná knižnica pre Elm}
+
+\section{Filozofia návrhu}
+
+Pri návrhu knižnice pre ochranu pred XSS útokmi v jazyku Elm vychádzame z troch základných pilierov. Po prvé, Elm sám o sebe už poskytuje robustnú ochranu proti XSS vďaka svojmu typovému systému a spôsobu, akým pracuje s DOM. Táto inherentná bezpečnosť však nie je absolútna, čo sme zistili pri analýze existujúcich riešení. Po druhé, moderné webové aplikácie často potrebujú pracovať s dynamickým obsahom, ktorý môže pochádzať z nedôveryhodných zdrojov. A po tretie, vývojári potrebujú jasné a jednoduché API, ktoré ich nezaťaží zbytočnou komplexnosťou, no zároveň poskytne dostatočnú ochranu.
+
+Hlavným cieľom navrhovanej knižnice je poskytnúť vrstvu ochrany, ktorá doplní Elmovú vstavanú bezpečnosť, bez toho, aby obmedzovala vývojárov v ich práci. Knižnica by mala byť jednoduchá na použitie, ale zároveň dostatočne silná na to, aby pokryla väčšinu reálnych scenárov, v ktorých môže dôjsť k XSS útoku.
+
+\section{Architektonický návrh}
+
+Navrhovaná knižnica pozostáva z troch hlavných komponentov, ktoré spolu tvoria ucelený bezpečnostný rámec. Prvým komponentom je systém typovo bezpečného generovania HTML. Elm už má výborný systém na prácu s HTML cez svoj `Html` modul, no chýba mu explicitné rozlíšenie medzi overeným a neovereným obsahom. Navrhujeme rozšíriť tento systém o nový typ `SafeHtml`, ktorý bude reprezentovať obsah, ktorý prešiel sanitizáciou.
+
+Druhým kľúčovým komponentom je sanitizačný engine. Ten bude implementovať kontextovo závislé znefunkčňovanie vstupov, čo je technika, ktorá sa osvedčila v iných frameworkoch ako Angular. Napríklad iný spôsob escapovania sa použije pre HTML obsah, iný pre atribúty a ešte iný pre JavaScriptové bloky. Tento engine bude implementovaný ako množina čistých funkcií, čo je v súlade s filozofiou Elm-u.
+
+Tretím komponentom je integračná vrstva pre prácu s externými zdrojmi, najmä JavaScriptom cez Elm ports a JSON API. Táto časť bude obsahovať validátory a transformátory pre dáta prichádzajúce z vonkajšieho sveta, ktoré sú najčastejším zdrojom bezpečnostných problémov.
+
+\section{Detaily implementácie}
+
+Základom knižnice bude modul `Html.Safe`, ktorý poskytne alternatívu k štandardnému `Html` modulu. Hlavným rozdielom bude, že všetky funkcie pre prácu s textovým obsahom budú vyžadovať typ `SafeString` namiesto obyčajného `String`. Toto je dôležitý koncept, pretože núti vývojárov explicitne označiť obsah ako bezpečný, čím sa zvyšuje povedomie o bezpečnostných rizikách.
+
+Ukážka základného použitia:
+
+\begin{lstlisting}[language=Elm]
+import Html.Safe exposing (..)
+import Html.Safe.Attributes exposing (..)
+
+view : Model -> Html Msg
+view model =
+    div []
+        [ text (sanitize model.userContent)
+        , safeDiv [ class "content" ] [ safeText model.trustedContent ]
+        ]
+\end{lstlisting}
+
+Sanitizačná funkcia bude implementovaná ako kombinácia viacerých techník. Základom je znefunkčnenie špeciálnych znakov pomocou známej techniky entity encoding, ale pôjde o komplexnejšiu implementáciu ako jednoduché náhrady znakov. Pre každý kontext (HTML, atribúty, URL) budeme aplikovať špecifické pravidlá.
+
+Napríklad pre HTML obsah použijeme:
+
+\begin{lstlisting}[language=Elm]
+sanitizeHtml : String -> String
+sanitizeHtml input =
+    input
+        |> String.replace "&" "&amp;"
+        |> String.replace "<" "&lt;"
+        |> String.replace ">" "&gt;"
+        |> String.replace "\"" "&quot;"
+        |> String.replace "'" "&#x27;"
+\end{lstlisting}
+
+Pre prácu s portami a JSON dátami navrhujem vytvoriť špeciálny decoder, ktorý kombinuje štandardné JSON dekódovanie so sanitizáciou:
+
+\begin{lstlisting}[language=Elm]
+type alias UserData =
+    { name : SafeString
+    , bio : SafeString
+    }
+
+userDecoder : Decoder UserData
+userDecoder =
+    map2 UserData
+        (field "name" (safeStringDecoder))
+        (field "bio" (safeStringDecoder))
+\end{lstlisting}
+
+\section{Bezpečnostné politiky}
+
+Dôležitou súčasťou návrhu je systém politík, ktoré umožňú prispôsobiť správanie knižnice konkrétnym potrebám aplikácie. Každá politika bude definovať:
+
+1. Aké HTML elementy a atribúty sú povolené
+2. Aké URL schémy sú povolené (http, https, mailto)
+3. Ako sa správať s neznámymi alebo potenciálne nebezpečnými vstupmi
+
+Politiky budú implementované ako záznamy (records), čo umožní ich jednoduchú kombináciu a rozširovanie:
+
+\begin{lstlisting}[language=Elm]
+type alias SecurityPolicy =
+    { allowedTags : List String
+    , allowedAttributes : List String
+    , allowedUrlSchemes : List String
+    }
+
+defaultPolicy : SecurityPolicy
+defaultPolicy =
+    { allowedTags = [ "div", "span", "p" ]
+    , allowedAttributes = [ "class", "style" ]
+    , allowedUrlSchemes = [ "https", "mailto" ]
+    }
+\end{lstlisting}
+
+\section{Výhody a obmedzenia}
+
+Hlavnou výhodou navrhovaného riešenia je jeho integrácia s Elm ekosystémom. Namiesto toho, aby sme vytvárali paralelný systém, rozširujeme existujúce koncepty jazyka o bezpečnostné vrstvy. To znamená, že vývojári môžu použiť svoje existujúce vedomosti o Elm a pritom získať dodatočnú bezpečnosť.
+
+Obmedzením je, že nie všetky scenáre sú pokryté. Napríklad úplná ochrana proti DOM-based XSS by si vyžadovala modifikáciu Elm runtime, čo nie je v našich možnostiach. Rovnako nie je možné úplne zabrániť útokom, ktoré prechádzajú cez nebezpečný JavaScript v portoch.
+
+\section{Záver}
+
+Navrhovaná knižnica predstavuje vyvážený kompromis medzi bezpečnosťou a použiteľnosťou. Vychádza z osvedčených postupov z iných frameworkov, no adaptuje ich na jedinečné vlastnosti Elm-u. Tým, že sa zameriava na najčastejšie zdroje XSS útokov a poskytuje jasné API, môže výrazne zvýšiť bezpečnosť Elm aplikácií bez výrazného nárastu komplexnosti.

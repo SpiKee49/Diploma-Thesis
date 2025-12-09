@@ -1,0 +1,96 @@
+% TEMPLATE AUTHOR: https://bitbucket.org/m_by/fiit-stu-thesis-template-for-latex
+% EDIT: Jozef Gáborík
+
+
+% SETTINGS - LATEX
+% to change name, title, supervisor etc. go to preamble/preamble.tex
+\newcommand{\myFontSize}[0] {12pt}
+\newcommand{\mySpacing}[0] {1.5}
+\newcommand{\myBibliography}[0] {bib/refs, appendices/refs1}
+
+\documentclass[12pt,a4paper,twoside,openright,slovak]{book}
+\include{preamble/preamble}
+
+\begin{document}
+
+% Minted
+% pygmentize -L styles
+%\usemintedstyle{autumn}
+
+% Title page
+\include{preamble/title}
+
+% Declaration
+\include{preamble/declaration}
+
+% Acknowledgements
+\include{preamble/acknowledgements}
+
+% Annotation
+\include{preamble/annotation}
+
+% Table of contents
+\tableofcontents{}
+\clearpage\null\thispagestyle{empty}
+\newpage
+\thispagestyle{plain}
+\include{content/listings}
+\thispagestyle{empty}
+\listoffigures
+
+\begingroup
+\listoftables
+\newpage
+\clearpage\null\thispagestyle{empty}
+\endgroup
+
+% References segment
+\begin{refsegment}
+ 
+% Introduction
+%\clearpage\null
+\input{content/intro}
+
+% Related Workd
+\input{content/related}
+
+% Chapter 1 - analyza
+\input{content/chapter1}
+
+% Chapter 2 - dalsia analyza
+\input{content/chapter2}
+
+% Chapter 3 - návrh riešenia
+\input{content/proposal}
+
+% Chapter 4 - Implementácia
+\input{content/implementation}
+
+\begingroup
+% Bibliography
+\printbibliography[heading=references,segment=\therefsegment,resetnumbers=true]
+\newpage\thispagestyle{empty}
+\endgroup
+
+\end{refsegment}
+
+% Appendix
+\appendix
+\renewcommand{\thepage}{\Alph{chapter}-\arabic{page}}
+\setcounter{page}{1}
+
+%\clearpage\null
+\include{appendices/appendix1}
+
+\renewcommand{\thepage}{\Alph{chapter}-\arabic{page}}
+\setcounter{page}{3}
+
+\include{appendices/appendix2}
+
+
+\renewcommand{\thepage}{\Alph{chapter}-\arabic{page}}
+\setcounter{page}{5}
+\include{appendices/appendix3}
+
+
+\end{document}

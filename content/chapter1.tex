@@ -1,0 +1,38 @@
+\chapter{Analýza problému}
+
+\section{Úvod do problematiky XSS}
+
+Cross-Site Scripting (XSS) je jednou z najrozšírenejších zraniteľností webových aplikácií, ktorá umožňuje útočníkom vkladať škodlivý skript do webových stránok zobrazovaných inými používateľmi. Tento typ útoku môže viesť k odcudzeniu citlivých informácií, manipulácii s obsahom stránky alebo prevzatiu kontroly nad používateľskou reláciou. Podľa štúdie \parencite{rodriguez2019xss} až 40\% všetkých útokov na webové aplikácie súvisí s XSS, čo podčiarkuje závažnosť tejto problematiky.
+
+Mechanizmus útoku spočíva v tom, že aplikácia prijme vstup od používateľa (napr. cez formulár alebo URL) a bez dôkladného ošetrenia ho vloží do výstupného HTML. Prehliadač následne spustí vložený skript ako súčasť aplikácie, čím útočník získava možnosť ovládať správanie aplikácie z pohľadu obete.
+
+\section{Typy XSS útokov}
+\subsection{Reflected XSS}
+
+Reflected XSS je typ útoku, kde škodlivý kód nie je uložený na serveri, ale je vrátený obeti prostredníctvom HTTP požiadavky. Tento typ útoku sa často využíva prostredníctvom URL, emailov alebo iných komunikačných kanálov, kde útočník dokáže presvedčiť obeť, aby klikla na špeciálne upravený odkaz.
+Keď obeť klikne na takýto odkaz, skript je odoslaný na server ako časť požiadavky a server ho vráti ako súčasť odpovede bez toho, aby ho dostatočne zvalidoval alebo zakódoval. Prehliadač obete potom vykoná tento skript s rovnakými oprávneniami, aké má legitímna stránka. Tak môže útočník získať prístup k citlivým údajom, ako sú cookies alebo iné údaje uložené v prehliadači.
+
+Prevencia proti Reflected XSS zahŕňa dôkladné overovanie a znefunkčnenie vstupov a výstupov. Všetky údaje, ktoré sú dynamicky generované a odoslané ako súčasť HTTP odpovede, by mali byť escapované, aby sa predišlo spusteniu vloženého skriptu. Okrem toho je užitočné používať bezpečnostné hlavičky, ako je Content Security Policy (CSP), ktoré môžu pomôcť obmedziť zdroje, z ktorých prehliadač môže načítavať a vykonávať skripty.
+
+\subsection{Stored XSS}
+
+Stored XSS, známy aj ako perzistentný XSS, je nebezpečnejší ako Reflected XSS, pretože škodlivý skript je uložený na serveri a je doručený všetkým používateľom, ktorí si zobrazia infikovanú stránku. Tento typ útoku sa obvykle vyskytuje v aplikáciách, ktoré umožňujú používateľom odosielať údaje, ako sú komentáre, príspevky na fórach alebo používateľské profily.
+
+Keď útočník vloží škodlivý skript do takéhoto vstupu a server ho uloží bez adekvátnej sanitácie vstupu, skript sa stane súčasťou stránky a bude vykonaný v prehliadači každého používateľa, ktorý si stránku zobrazí. Tento útok môže byť použitý na krádež cookies, šírenie malware, alebo manipuláciu s webovou aplikáciou.
+
+Prevencia proti Stored XSS zahŕňa dôkladnú sanitizáciu používateľských vstupov pri ich uložení aj pri ich zobrazení. Všetky používateľské vstupy by mali byť považované za potenciálne nebezpečné a mali by byť ošetrené podľa kontextu, v ktorom budú použité. Okrem toho, aplikácia by mala používať hlavičky ako Content Security Policy(CSP) na obmedzenie možností spustenia škodlivého kódu.
+
+\subsection{DOM-based XSS}
+
+DOM-based XSS je útok, ktorý vzniká na strane klienta, keď skript manipuluje Document Object Model (DOM) spôsobom, ktorý spustí škodlivý kód. Tento typ útoku nevyžaduje, aby bol škodlivý kód uložený na serveri alebo poslaný ako súčasť odpovede. Namiesto toho sa zneužíva spôsob, akým JavaScript na stránke manipuluje s DOM.
+
+Útočník môže zmeniť určité časti DOM, ako sú URL fragmenty, ktoré sú potom použité v skriptoch na stránke. Ak tieto skripty nevalidujú vstup dostatočne, môžu vykonať škodlivý kód v prehliadači obete. Tento útok je často ťažšie detegovať, pretože sa vyskytuje úplne na strane klienta bez interakcie so serverom.
+
+Prevencia proti DOM-based XSS zahŕňa dôkladné validovanie a znefunkčnenie všetkých vstupov, ktoré sú použité na manipuláciu s DOM. JavaScript by mal manipulovať s DOM bezpečne a používať bezpečné metódy na vloženie používateľských údajov. Okrem toho, používanie Content Security Policy môže pomôcť obmedziť možnosť spustenia škodlivého kódu z iných zdrojov.
+
+Každý typ XSS útoku predstavuje vážnu bezpečnostnú hrozbu, a preto je dôležité implementovať adekvátne bezpečnostné opatrenia na ochranu používateľov a ich údajov.
+
+
+
+
+

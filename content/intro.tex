@@ -1,0 +1,17 @@
+\chapter{Úvod}
+
+\pagenumbering{arabic}
+
+Bezpečnosť webových aplikácií predstavuje jednu z najdôležitejších výziev v oblasti informačných technológií. S rastúcou zložitosťou moderných webových riešení, množstvom interakcií s používateľmi a integráciou externých služieb narastá aj riziko výskytu rôznych typov zraniteľností. Jednou z najrozšírenejších a zároveň najdlhšie známych hrozieb je tzv. \textit{Cross-Site Scripting} (XSS), ktorá patrí medzi tzv. \textit{injection} útoky \parencite{owasp2021xss}. Napriek dlhodobej známosti tejto zraniteľnosti sa stále pravidelne objavuje vo webových systémoch vrátane aplikácií veľkých spoločností, čo poukazuje na jej komplexnosť a pretrvávajúcu aktuálnosť.
+
+\textbf{Cross-Site Scripting (XSS)} je technika útoku, ktorá umožňuje útočníkovi vkladať škodlivý skript (zvyčajne JavaScript) do webovej stránky, ktorá je následne vykonaná v prehliadači iného používateľa. Cieľom útoku môže byť napríklad krádež autentifikačných údajov, zmena obsahu stránky, presmerovanie používateľa na škodlivý web alebo získanie kontroly nad používateľskou reláciou. Úspešný XSS útok závisí od schopnosti útočníka vložiť skript do stránky bez toho, aby bol zneškodnený alebo správne ošetrený \parencite{owaspcheatsheet2023}.
+
+XSS sa zvyčajne zneužíva v kombinácii s inými slabinami, ako je nedostatočné overovanie vstupov, nesprávne kódovanie výstupov, alebo slabé politiky správy relácií. Zároveň ide o útok, ktorý sa nedá ľahko detegovať na strane servera, pretože sa odohráva v klientskom prehliadači. Vzhľadom na tieto charakteristiky patrí XSS dlhodobo medzi TOP 10 hrozieb podľa rebríčka OWASP \parencite{owasptop10}.
+
+Preto sa v posledných rokoch venuje veľká pozornosť vývoju takých programovacích jazykov a frameworkov, ktoré dokážu výskyt XSS zraniteľností minimalizovať už na úrovni návrhu aplikácie. Jedným z takýchto jazykov je aj \textbf{Elm} — funkcionálny, staticky typovaný jazyk navrhnutý na tvorbu webových front-endov. Elm poskytuje silný typový systém, ktorý zabraňuje vzniku viacerých bežných chýb a zároveň kladie dôraz na imutabilitu a čisté funkcie \parencite{czaplicki2012elm}.
+
+Elm pri generovaní HTML automaticky escapuje nebezpečné znaky a nedovoľuje vývojárom ľahko manipulovať s DOM pomocou surových stringov, čo ho prirodzene chráni pred väčšinou XSS útokov. Jediným spôsobom, ako vložiť „nebezpečný“ HTML obsah, je použitie špeciálnych funkcií ako \texttt{Html.node}, ktoré vyžadujú vedomý zásah vývojára \parencite{elmguide2023html}.
+
+Hoci Elm nie je v súčasnosti mainstreamovým riešením, jeho dizajnové princípy ponúkajú zaujímavý model bezpečného programovania. Práve preto táto práca analyzuje XSS nielen ako samostatnú problematiku, ale zároveň skúma, ako môžu moderné typovo bezpečné jazyky ako Elm prirodzene odolávať podobným útokom.
+
+Z metodologického hľadiska bude práca pozostávať z dvoch hlavných častí: (1) systematická analýza typov a metód XSS útokov, vrátane ich implementácie v kontrolovanom prostredí, a (2) analýza jazyka Elm z hľadiska odolnosti voči týmto útokom. Záverom práce bude diskusia o tom, do akej miery môže byť typovo bezpečný jazyk účinným nástrojom v prevencii klientskych zraniteľností, a odporúčania pre vývojárov ohľadom bezpečného návrhu aplikácií.

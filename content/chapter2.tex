@@ -1,0 +1,150 @@
+\chapter{Analýza JavaScriptových frameworkov z hľadiska ochrany proti XSS}
+
+\section{Úvod do problematiky}
+Moderné JavaScriptové frameworky vyvinuli rôzne stratégie na ochranu pred Cross-Site Scriptingom (XSS), čo predstavuje jednu z najrozšírenejších bezpečnostných hrozieb vo webovom vývoji. Tieto frameworky sa snažia nájsť rovnováhu medzi bezpečnosťou a flexibilitou, pričom každý pristupuje k problému s odlišnou filozofiou. V tejto kapitole podrobne analyzujeme, ako hlavné front-endové frameworky riešia túto problematiku, s dôrazom na ich architektonické rozhodnutia a efektivitu pri prevencii XSS útokov.
+
+\section{React: Deklaratívna ochrana s únikovými ventilmi}
+React, ako jeden z najpopulárnejších front-endových frameworkov, implementuje bezpečnostný model založený na automatickom escapovaní všetkého obsahu vloženého do JSX šablón. Keď vývojár vloží dynamický obsah pomocou syntaxe \texttt{\{userInput\}}, React automaticky escapuje všetky potenciálne nebezpečné znaky, čím zabraňuje ich interpretácii ako HTML alebo JavaScript. Tento mechanizmus je implementovaný priamo v React DOM knižnici a funguje pre všetky textové obsahy a atribúty.
+
+Napríklad, ak by používateľský vstup obsahoval skript \texttt{<script>alert('XSS')</script>}, React by tento kód zobrazil ako čistý text, nie ako vykonateľný JavaScript:
+
+\begin{lstlisting}[language=JavaScript]
+const userInput = "<script>alert('XSS')</script>";
+return <div>{userInput}</div>; // Bezpecne, obsah je escapovany
+\end{lstlisting}
+
+Avšak React poskytuje aj explicitný spôsob, ako túto ochranu obísť pomocou špeciálneho atribútu \texttt{dangerouslySetInnerHTML}. Tento názov slúži ako varovanie pre vývojárov, že používajú potenciálne nebezpečnú funkcionalitu:
+
+\begin{lstlisting}[language=JavaScript]
+const userInput = "<b>tucny text</b>";
+return <div dangerouslySetInnerHTML={{__html: userInput}} />; // Potencialne nebezpecne
+\end{lstlisting}
+
+Ďalšou oblasťou potenciálnych problémov sú JavaScriptové URL v atribútoch ako \texttt{href}, kde React neposkytuje úplnú ochranu:
+
+\begin{lstlisting}[language=JavaScript]
+const userUrl = "javascript:alert('XSS')";
+return <a href={userUrl}>Klikni sem</a>; // Potencialne nebezpecne
+\end{lstlisting}
+
+React tiež neposkytuje komplexnú ochranu proti DOM-based XSS útokom, keďže mnohé takéto útoky sa môžu vyskytnúť mimo Reactového ekosystému.
+
+\section{Angular: Komplexný sanitizačný systém}
+Angular pristupuje k problematike XSS komplexnejšie než React, s detailne prepracovaným sanitizačným systémom. Tento framework rozlišuje päť rôznych kontextov, v ktorých môže byť dynamický obsah vložený: HTML, STYLE, SCRIPT, URL a RESOURCE URL. Pre každý z týchto kontextov aplikuje špecifické sanitizačné pravidlá.
+
+Angularov \texttt{DomSanitizer} service poskytuje API, ktoré umožňuje vývojárom explicitne označiť obsah ako bezpečný pre konkrétny kontext:
+
+\begin{lstlisting}[language=TypeScript]
+import { DomSanitizer } from '@angular/platform-browser';
+
+constructor(private sanitizer: DomSanitizer) {}
+
+getSafeHtml() {
+  return this.sanitizer.bypassSecurityTrustHtml('<b>Tucny text</b>');
+}
+\end{lstlisting}
+
+Angular tiež implementuje AOT (Ahead-of-Time) kompiláciu, ktorá počas zostavovania aplikácie analyzuje šablóny a detekuje potenciálne bezpečnostné problémy. Tento prístup umožňuje zachytiť mnohé zraniteľnosti ešte pred nasadením aplikácie.
+
+Napriek týmto robustným mechanizmom má Angular niekoľko obmedzení. Jeho sanitizačný systém môže byť pre vývojárov mätúci, čo môže viesť k chybnému použitiu API. Navyše, v niektorých špeciálnych prípadoch môže byť escapovanie neúplné, najmä pri komplexných kombináciách rôznych kontextov.
+
+\section{Vue.js: Vyvážený prístup s explicitnými direktívami}
+Vue.js zaujíma strednú cestu medzi Reactom a Angularom v prístupe k XSS ochrane. Štandardná interpolácia pomocou dvojitých zložených zátvoriek \texttt{\{\{\}\}} automaticky escapuje všetok dynamický obsah, podobne ako React.
+
+\begin{lstlisting}[language=HTML]
+<template>
+  <div>{{ userInput }}</div> <!-- Bezpecne - obsah je escapovany -->
+</template>
+\end{lstlisting}
+
+Pre prípady, kedy je potrebné vložiť HTML obsah, Vue.js poskytuje direktívu \texttt{v-html}, ktorá slúži podobne ako Reactové \texttt{dangerouslySetInnerHTML}:
+
+\begin{lstlisting}[language=HTML]
+<template>
+  <div v-html="userInput"></div> <!-- Potencialne nebezpecne -->
+</template>
+\end{lstlisting}
+
+Vue.js tiež implementuje špeciálne ošetrenie pre atribúty, kde automaticky escapuje potenciálne nebezpečné hodnoty. Napríklad pri bindovaní atribútov pomocou \texttt{v-bind} alebo skrátenej syntaxe \texttt{:}, Vue aplikuje kontextovo závislé escapovanie.
+
+Špeciálnym prípadom sú JavaScriptové URL, kde Vue poskytuje lepšiu ochranu ako React, ale stále nie je dokonalá:
+
+\begin{lstlisting}[language=HTML]
+<template>
+  <a :href="userUrl">Klikni sem</a> <!-- Ciastocne chranene -->
+</template>
+\end{lstlisting}
+
+Vue tiež ponúka možnosť definovať vlastné sanitizačné funkcie, čo umožňuje vývojárom prispôsobiť ochranu špecifickým potrebám aplikácie.
+
+\section{Svelte: Kompilačný prístup k bezpečnosti}
+Svelte pristupuje k problematike XSS unikátnym spôsobom, ktorý vychádza z jeho kompilačného modelu. Namiesto toho, aby sa sanitizácia vykonávala počas behu aplikácie, Svelte generuje optimalizovaný kód, ktorý už obsahuje vstavané bezpečnostné mechanizmy.
+
+Štandardná interpolácia v Svelte automaticky escapuje obsah:
+
+\begin{lstlisting}[language=HTML]
+<script>
+  let userInput = '<script>alert("XSS")<\/script>';
+</script>
+
+<p>{userInput}</p> <!-- Bezpecne - obsah je escapovany -->
+\end{lstlisting}
+
+Pre vkladanie HTML Svelte poskytuje špeciálnu syntax \texttt{@html}, ktorá je explicitne označená ako potenciálne nebezpečná:
+
+\begin{lstlisting}[language=HTML]
+<p>{@html userInput}</p> <!-- Potencialne nebezpecne -->
+\end{lstlisting}
+
+Svelte tiež implementuje statickú analýzu počas kompilácie, ktorá môže detegovať niektoré zjavné bezpečnostné problémy. Tento prístup umožňuje zachytiť potenciálne zraniteľnosti ešte pred spustením aplikácie.
+
+Avšak, Svelte má niektoré obmedzenia v porovnaní s komplexnejšími frameworkami ako Angular. Chýba mu kontextovo závislé escapovanie a jeho sanitizačný systém nie je tak detailne prepracovaný. Navyše, ako relatívne nový framework, má menšiu komunitu a menej overených bezpečnostných postupov.
+
+\section{Porovnanie s Elmom: Jazykový prístup k bezpečnosti}
+Elm sa od vyššie uvedených JavaScriptových frameworkov líši zásadným spôsobom. Kým React, Angular, Vue a Svelte sú knižnice alebo frameworky postavené nad JavaScriptom, Elm je samostatný programovací jazyk s vlastným prostredím a typovým systémom.
+
+Tento rozdiel umožňuje Elm-u implementovať oveľa dôslednejšiu ochranu proti XSS. V Elm-e neexistuje ekvivalent k \texttt{dangerouslySetInnerHTML} alebo \texttt{v-html}. Všetok HTML obsah sa generuje prostredníctvom typovo bezpečných funkcií z modulu \texttt{Html}, ktoré automaticky escapujú všetky dynamické hodnoty.
+
+Napríklad pokus o vloženie potenciálne nebezpečného HTML v Elm-e vyžaduje explicitné použitie špeciálnych funkcií:
+
+\begin{lstlisting}[language=Elm]
+view : Model -> Html Msg
+view model =
+    div [] [ text model.userInput ] -- Vzdy bezpecne
+\end{lstlisting}
+
+Elm tiež neumožňuje priamu manipuláciu s DOM, čím eliminuje celú triedu DOM-based XSS útokov. Všetky zmeny v DOM prechádzajú cez Elm runtime, ktorý aplikuje dôsledné bezpečnostné pravidlá.
+
+Ďalšou výhodou Elm-u je jeho typový systém, ktorý explicitne rozlišuje medzi obyčajnými reťazcami a HTML obsahom. Toto rozlíšenie je vynútené na úrovni kompilátora, čím sa výrazne znižuje pravdepodobnosť náhodného vloženia nebezpečného kódu.
+
+\section{Aktuálne mechanizmy ochrany proti XSS v jazyku Elm}
+
+ V porovnaní s tradičnými JavaScript rámcami poskytuje Elm niekoľko vlastností, ktoré ho prirodzene chránia pred XSS útokmi. Medzi najvýznamnejšie patrí:
+
+\begin{itemize}
+    \item silný statický typový systém,
+    \item imutabilita dát,
+    \item čisto funkčný prístup bez vedľajších účinkov,
+    \item automatická sanetizácia dynamických údajov pri generovaní HTML.
+\end{itemize}
+
+Pri vytváraní HTML v Elm-e sa používa modul \texttt{Html}, ktorý generuje HTML ako čisto typové hodnoty. Všetky dynamické vstupy (napr. text od používateľa) sú automaticky sanitizované, čím sa eliminuje možnosť injektovania skriptu. Ako uvádza oficiálna dokumentácia \parencite{elmguide2023html}, Elm zámerne neponúka jednoduché spôsoby na priame vkladanie surového HTML do DOM-u.
+
+\section{Potenciálne riziká a výzvy}
+
+Napriek inherentným bezpečnostným mechanizmom existujú určité oblasti, kde môže dôjsť k zraniteľnostiam:
+
+\begin{enumerate}
+    \item \textbf{Použitie portov na interakciu s JavaScriptom}: Elm umožňuje komunikáciu s JavaScriptom prostredníctvom portov. Ak nie sú tieto porty správne navrhnuté a ošetrené, môžu otvoriť dvere pre XSS útoky. Útočník môže napríklad zneužiť JavaScriptový kód na čítanie alebo zápis do DOM-u, čím obchádza bezpečnostný model Elm-u \parencite{czaplicki2012elm}.
+
+    \item \textbf{Vkladanie nebezpečného HTML obsahu}: Aj keď Elm štandardne neumožňuje priame vkladanie nebezpečného HTML, existujú funkcie ako \texttt{Html.node}, \texttt{Html.lazy} či \texttt{Html.Attributes.property}, ktoré pri nesprávnom použití môžu umožniť injektovanie neescapovaného obsahu \parencite{jfmengels2022vuln}.
+
+    \item \textbf{Ukladanie dát na strane klienta}: Používanie \texttt{localStorage} na ukladanie tokenov môže byť rizikové, pretože tieto údaje sú prístupné z JavaScriptu. V prípade kompromitácie pomocou XSS v externej JavaScript časti môžu byť tieto dáta zneužité \parencite{owaspcheatsheet2023}.
+\end{enumerate}
+
+\section{Záver}
+Analýza ukazuje, že moderné JavaScriptové frameworky výrazne zlepšili ochranu proti XSS v porovnaní s čistým JavaScriptom, ale stále majú určité obmedzenia. Väčšina z nich poskytuje spôsoby, ako ochranu obísť, čo môže viesť k zraniteľnostiam, ak vývojári tieto mechanizmy použijú nesprávne.
+
+Elm oproti tomu ponúka dôslednejší a systémovejší prístup k bezpečnosti, kde sú ochranné mechanizmy zabudované priamo do jazyka. Tento prístup minimalizuje priestor pre chyby vývojárov a poskytuje vyššiu úroveň bezpečnosti bez potreby explicitných sanitizačných krokov.
+
+Výber frameworku alebo jazyka by preto mal brať do úvahy nielen vývojovú produktivitu a výkon, ale aj jeho bezpečnostný model a schopnosť efektívne čeliť takým hrozbám, ako sú XSS útoky.

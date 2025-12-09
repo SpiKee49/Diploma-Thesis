@@ -1,0 +1,267 @@
+\chapter{Implementácia návrhu}
+
+\section{Analýza Problému a Identifikácia Vektorov Útoku}
+
+Jazyk Elm je vo svojom jadre navrhnutý s dôrazom na bezpečnosť. Jeho systém vykresľovania pohľadov (view) štandardne escapuje všetky dynamické reťazce. Funkcia `Html.text` zabezpečuje, že reťazec ako \texttt{"<script>alert(1)</script>"} bude vložený do DOMu ako textový uzol (TextNode) a nie interpretovaný ako HTML.
+
+Problém a hlavný vektor útoku teda nevzniká priamo v Elme, ale na jeho hraniciach -- pri komunikácii s JavaScriptom. Identifikovali sme dva primárne vektory zraniteľností:
+
+\begin{enumerate}
+    \item \textbf{Vstupný Vektor (JS $\rightarrow$ Elm):} Dáta (napr. z API alebo `localStorage`) vstupujú do Elmu z JavaScriptu. Ak vývojár v Elme tieto dáta nesprávne zobrazí použitím nebezpečných funkcií (napr. `Html.Attributes.property "innerHTML"`), môže dôjsť k DOM-based XSS.
+    
+    \item \textbf{Výstupný Vektor (Elm $\rightarrow$ JS):} Dáta (napr. z formulára) sú poslané z Elmu do JavaScriptu cez porty. Elm v tomto bode žiadnu sanitizáciu nevykonáva. Ak externý JavaScript týmto dátam dôveruje a vloží ich do stránky pomocou nebezpečných funkcií (napr. `element.innerHTML = dataFromElm;`), dochádza k XSS.
+\end{enumerate}
+
+\section{Pôvodný Návrh: Ochrana Vstupného Vektora}
+
+Náš počiatočný výskum, korešpondujúci s fázou "Architektúra + typy" v našom pláne, sa sústredil na riešenie Vstupného Vektora (\#1). Hypotéza bola, že môžeme využiť silný typový systém Elmu na vytvorenie záruk na úrovni kompilátora.
+
+\subsection{Koncept Nepriehľadných Typov (Opaque Types)}
+
+Navrhli sme vytvorenie modulu `Html.Safe`, ktorý by definoval "nepriehľadné" (opaque) typy `SafeString` a `SafeHtml`. Tieto typy by skrývali svoje dátové konštruktory, čím by znemožnili ich vytvorenie v iných moduloch. Jediný spôsob, ako získať inštanciu tohto typu, by bol cez funkcie nášho modulu, ktoré by vynútili sanitizáciu.
+
+Referenčná implementácia tohto prístupu je naznačená v ukážke \ref{lst:safehtml}.
+
+\begin{lstlisting}[language=Elm, caption={Pôvodný návrh modulu Html.Safe (koncept)}, label={lst:safehtml}]
+-- src/Html/Safe.elm
+
+module Html.Safe exposing
+    ( SafeHtml -- Konstruktor (SafeHtml String) NIE JE vystaveny
+    , fromString -- Jediny sposob, ako vytvorit SafeHtml
+    , toHtml     -- Jediny sposob, ako ho bezpecne zobrazit
+    )
+
+import Html exposing (Html)
+import Html.Attributes
+import Json.Encode
+
+-- 1. Definicia nepriehladneho typu
+type SafeHtml = SafeHtml String
+
+-- 2. Sanitizacna funkcia (brana)
+-- Tato funkcia by obsahovala sanitizacny engine
+fromString : String -> SafeHtml
+fromString rawString =
+    -- Tu by prebehla komplexna sanitizacia...
+    SafeHtml (sanitize rawString)
+
+-- 3. Bezpecny "unwrapper"
+-- Vytvorili by sme funkciu, ktora ako jedina smie 
+-- pouzit nebezpecne `innerHTML`.
+-- Kedze prijima iba nami vytvoreny typ SafeHtml,
+-- je zarucene, ze vstup je uz sanitizovany.
+toHtml : SafeHtml -> Html msg
+toHtml (SafeHtml safeValue) =
+    Html.div
+        [ Html.Attributes.property "innerHTML" 
+            (Json.Encode.succeed safeValue) 
+        ]
+        []
+\end{lstlisting}
+
+Tento prístup by efektívne zabránil vývojárovi použiť `Html.Attributes.property` s obyčajným reťazcom, keďže typový systém Elmu by vyhlásil chybu pri kompilácii.
+
+\subsection{Prehodnotenie a Architektonický Pivot}
+
+Po hlbšej analýze sme tento prístup prehodnotili a rozhodli sme sa ho opustiť. Dospeli sme k záveru, že hoci je elegantný, rieši menej závažný problém a má zásadné nedostatky:
+
+\begin{itemize}
+    \item \textbf{Nerieši Výstupný Vektor:} Tento návrh nijako nechráni dáta opúšťajúce Elm cez porty (Vektor \#2). Vývojár by stále mohol poslať "špinavý" reťazec do JavaScriptu, kde by bol zneužitý.
+    \item \textbf{Obmedzená Adopcia:} Núti vývojára prepísať celú aplikáciu, aby namiesto `String` používala `SafeString`.
+    \item \textbf{Zastaraný Prístup:} Komunita Elmu sa zhodla, že `Html.Attributes.property "innerHTML"` je "code smell" (indikátor zlého návrhu) a je lepšie sa mu úplne vyhnúť, než sa ho snažiť zabezpečiť.
+\end{itemize}
+
+Dospeli sme k záveru, že skutočné riziko nespočíva vo vnútri Elmu, ale na jeho hraniciach. Preto sme sa rozhodli presunúť našu bezpečnostnú logiku práve tam.
+
+\section{Prvá Iterácia: Middleware s Typovo Špecifickými Úlohami}
+
+Naším prvým architektonickým riešením bolo vytvorenie centrálneho "middleware" modulu, ktorý slúžil ako jediný, kontrolovaný bod pre všetku odchádzajúcu komunikáciu (Riešenie Vektora \#2).
+
+\subsection{Koncept Centralizovaného Portu}
+
+Namiesto toho, aby sme umožnili rôznym modulom definovať vlastné porty, vytvorili sme jeden `port module` s názvom `Port.Middleware`. Všetky ostatné moduly v aplikácii boli bežné Elm moduly a pre odoslanie dát do JS museli použiť funkcie poskytované naším middleware.
+
+Táto architektúra nám dala absolútnu kontrolu nad každým bitom dát, ktorý opúšťa bezpečné prostredie Elmu.
+
+\subsection{Implementácia s TaskName}
+
+V tejto iterácii sme zaviedli typ `TaskName`, ktorý definoval špecifické úlohy, ktoré aplikácia môže vykonávať:
+
+\begin{lstlisting}[language=Elm, caption={Prvá iterácia s TaskName}, label={lst:taskname}]
+type TaskName
+    = SaveUsername
+    | SaveCounter
+    | UpdatePageTitle
+
+encodeTaskName : TaskName -> String
+encodeTaskName task =
+    case task of
+        SaveUsername -> "saveUsername"
+        SaveCounter -> "saveCounter"
+        UpdatePageTitle -> "updatePageTitle"
+\end{lstlisting}
+
+Každá funkcia v middleware vyžadovala explicitné stanovenie `TaskName` a `SecurityPolicy`:
+
+\begin{lstlisting}[language=Elm]
+sendString : TaskName -> SecurityPolicy -> String -> Cmd msg
+sendString task policy rawString =
+    let
+        safeString = sanitize policy rawString
+    in
+    sendTask
+        { taskName = encodeTaskName task
+        , payload = Encode.string safeString
+        }
+\end{lstlisting}
+
+\subsection{Identifikované Problémy}
+
+Po implementácii a testovaní tejto verzie sme identifikovali niekoľko problémov:
+
+\begin{itemize}
+    \item \textbf{Príliš Špecifická Architektúra:} Typ `TaskName` bol viazaný na konkrétne úlohy aplikácie (SaveUsername, SaveCounter), čo obmedzovalo znovupoužiteľnosť knižnice.
+    \item \textbf{Duplicitná Zodpovednosť:} Middleware riešil súčasne dve veci -- identifikáciu typu úlohy (TaskName) a bezpečnostnú politiku (SecurityPolicy). To vytvorilo zbytočnú zložitosť.
+    \item \textbf{Slabá Demonštrácia Konceptu:} Pre prezentáciu riešenia a jeho benefitov bolo dôležitejšie ukázať samotné bezpečnostné politiky, nie aplikačne-špecifickú logiku.
+    \item \textbf{Obmedzená Flexibilita:} Pridanie novej úlohy vyžadovalo modifikáciu jadra knižnice, čo porušovalo princíp Open/Closed.
+\end{itemize}
+
+\section{Finálna Iterácia: Generický Policy-Based Middleware}
+
+Na základe identifikovaných problémov sme vykonali refaktoring do čistejšej, generickejšej architektúry.
+
+\subsection{Odstránenie TaskName}
+
+Kľúčovým rozhodnutím bolo úplné odstránenie typu `TaskName`. Dospeli sme k záveru, že identifikácia typu úlohy je zodpovednosťou aplikačnej vrstvy, nie bezpečnostnej knižnice. Middleware sa má starať výhradne o jedno -- zabezpečenie dát podľa zvolenej politiky.
+
+\subsection{Jednoduchá Správa Založená na Politike}
+
+Namiesto komplexnej štruktúry `\{ taskName, payload \}` sme prešli na jednoduchšiu `\{ policy, data \}`:
+
+\begin{lstlisting}[language=Elm, caption={Finálny generický middleware - Definícia modulu}, label={lst:generic-def}]
+port module Port.Middleware exposing
+    ( SecurityPolicy(..)
+    , send
+    , sendString
+    )
+
+import Json.Encode as Encode exposing (Value)
+import Regex
+
+-- Jediny port - genericky, bez aplikacne-specifickej logiky
+port sendToJS : { policy : String, data : Value } -> Cmd msg
+\end{lstlisting}
+
+\begin{lstlisting}[language=Elm, caption={Finálny generický middleware - Bezpečnostné politiky}, label={lst:generic-policy}]
+type SecurityPolicy
+    = AllowTextOnly
+    | AllowSafeHtml
+    | AllowUrl
+    | Passthrough
+
+policyToString : SecurityPolicy -> String
+policyToString policy =
+    case policy of
+        AllowTextOnly -> "text-only"
+        AllowSafeHtml -> "safe-html"
+        AllowUrl -> "url"
+        Passthrough -> "passthrough"
+\end{lstlisting}
+
+\begin{lstlisting}[language=Elm, caption={Finálny generický middleware - API funkcie}, label={lst:generic-api}]
+sendString : SecurityPolicy -> String -> Cmd msg
+sendString policy rawString =
+    let
+        safeString = sanitize policy rawString
+    in
+    sendToJS
+        { policy = policyToString policy
+        , data = Encode.string safeString
+        }
+
+send : SecurityPolicy -> Value -> Cmd msg
+send policy payload =
+    sendToJS
+        { policy = policyToString policy
+        , data = payload
+        }
+\end{lstlisting}
+
+\subsection{Prínosy Finálnej Architektúry}
+
+Tento refaktoring priniesol niekoľko zásadných vylepšení:
+
+\begin{itemize}
+    \item \textbf{Jednoduchosť:} Middleware má teraz jedinú zodpovednosť -- aplikovať bezpečnostnú politiku. Všetka aplikačná logika je v aplikačnej vrstve.
+    
+    \item \textbf{Znovupoužiteľnosť:} Knižnicu možno použiť v akejkoľvek Elm aplikácii bez modifikácií. Vývojár ju importuje a okamžite môže začať posielať sanitizované dáta.
+    
+    \item \textbf{Lepšia Demonštrácia:} Pre účely prezentácie a testovania sme vytvorili demo aplikáciu, ktorá ukazuje všetky štyri bezpečnostné politiky v akcii. Každá politika má vlastný input field a tlačidlo, čo umožňuje priamo pozorovať rozdiel v sanitizácii.
+    
+    \item \textbf{Jasné API:} Funkcie `sendString` a `send` majú minimálne parametre -- iba politiku a dáta. Nie je potrebné rozhodovať sa o type úlohy alebo iných aplikačne-špecifických detailoch.
+    
+    \item \textbf{Fokus na Bezpečnosť:} Odstránením `TaskName` sme zdôraznili, že podstatou knižnice je bezpečnostná politika, nie typovanie úloh.
+\end{itemize}
+
+\subsection{Príklad Použitia vo Finálnej Verzii}
+
+Demo aplikácia demonštruje jednoduché použitie pre všetky štyri politiky:
+
+\begin{lstlisting}[language=Elm, caption={Ukážka použitia finálneho middleware}, label={lst:usage}]
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        SendPlainText ->
+            ( model
+            , Port.sendString Port.AllowTextOnly model.plainText
+            )
+
+        SendRichText ->
+            ( model
+            , Port.sendString Port.AllowSafeHtml model.richText
+            )
+
+        SendUrl ->
+            ( model
+            , Port.sendString Port.AllowUrl model.url
+            )
+
+        SendCounter ->
+            ( model
+            , Port.send Port.Passthrough (Encode.int model.counter)
+            )
+\end{lstlisting}
+
+Všimnite si absenciu akéhokoľvek "task name" parametra. Vývojár sa zameriava iba na to, akú bezpečnostnú politiku chce aplikovať na konkrétne dáta.
+
+\subsection{JavaScript Strana}
+
+Na JavaScriptovej strane prijímame správy s informáciou o použitej politike:
+
+\begin{lstlisting}[language=JavaScript, caption={Spracovanie správ v JavaScripte}, label={lst:js}]
+if (app.ports.sendToJS) {
+    app.ports.sendToJS.subscribe(function(message) {
+        const policy = message.policy;  // "text-only", "safe-html"...
+        const data = message.data;      // Sanitizovane data
+        
+        console.log("Received:", policy, data);
+        // data su garantovane bezpecne podla zvolenej politiky
+    });
+}
+\end{lstlisting}
+
+JavaScript nemusí poznať detaily aplikačnej logiky -- dostane iba informáciu o aplikovanej politike a bezpečné dáta.
+
+\section{Záver Evolúcie Návrhu}
+
+Evolúciou nášho návrhu sme prešli troma hlavnými fázami:
+
+\begin{enumerate}
+    \item \textbf{Ochrana vstupného vektora} pomocou nepriehľadných typov -- elegantné, ale nedostatočné riešenie.
+    \item \textbf{Middleware s TaskName} -- správny smer, ale príliš aplikačne-špecifický.
+    \item \textbf{Generický policy-based middleware} -- finálne riešenie s jasnou zodpovednosťou a maximálnou znovupoužiteľnosťou.
+\end{enumerate}
+
+Každá iterácia nás priblížila k jadru problému: XSS vzniká na hranici Elmu a JavaScriptu, a preto tam musí byť aj ochrana. Finálne riešenie poskytuje jednoduchý, ale efektívny mechanizmus, ktorý núti vývojára explicitne sa rozhodnúť, aká úroveň bezpečnosti je pre konkrétne dáta vhodná.
+
+Táto architektúra predstavuje pevný základ pre rozšírenie sanitizačného enginu v budúcnosti. Nasledujúce kroky budú zahŕňať implementáciu komplexnejšieho HTML parsera pre politiku `AllowSafeHtml` a URL validátora pre `AllowUrl`, pričom jadro architektúry zostane nezmenené.
