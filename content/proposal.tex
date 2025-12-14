@@ -1,5 +1,8 @@
 \chapter{Návrh riešenia: Bezpečnostná knižnica pre Elm}
 
+
+Navrhovaná knižnica predstavuje vyvážený kompromis medzi bezpečnosťou a použiteľnosťou. Vychádza z osvedčených postupov z iných frameworkov, no adaptuje ich na jedinečné vlastnosti Elm-u. Tým, že sa zameriava na najčastejšie zdroje XSS útokov a poskytuje jasné API, môže výrazne zvýšiť bezpečnosť Elm aplikácií bez výrazného nárastu komplexnosti.
+
 \section{Filozofia návrhu}
 
 Pri návrhu knižnice pre ochranu pred XSS útokmi v jazyku Elm vychádzame z troch základných pilierov. Po prvé, Elm sám o sebe už poskytuje robustnú ochranu proti XSS vďaka svojmu typovému systému a spôsobu, akým pracuje s DOM. Táto inherentná bezpečnosť však nie je absolútna, čo sme zistili pri analýze existujúcich riešení. Po druhé, moderné webové aplikácie často potrebujú pracovať s dynamickým obsahom, ktorý môže pochádzať z nedôveryhodných zdrojov. A po tretie, vývojári potrebujú jasné a jednoduché API, ktoré ich nezaťaží zbytočnou komplexnosťou, no zároveň poskytne dostatočnú ochranu.
@@ -92,7 +95,3 @@ defaultPolicy =
 Hlavnou výhodou navrhovaného riešenia je jeho integrácia s Elm ekosystémom. Namiesto toho, aby sme vytvárali paralelný systém, rozširujeme existujúce koncepty jazyka o bezpečnostné vrstvy. To znamená, že vývojári môžu použiť svoje existujúce vedomosti o Elm a pritom získať dodatočnú bezpečnosť.
 
 Obmedzením je, že nie všetky scenáre sú pokryté. Napríklad úplná ochrana proti DOM-based XSS by si vyžadovala modifikáciu Elm runtime, čo nie je v našich možnostiach. Rovnako nie je možné úplne zabrániť útokom, ktoré prechádzajú cez nebezpečný JavaScript v portoch.
-
-\section{Záver}
-
-Navrhovaná knižnica predstavuje vyvážený kompromis medzi bezpečnosťou a použiteľnosťou. Vychádza z osvedčených postupov z iných frameworkov, no adaptuje ich na jedinečné vlastnosti Elm-u. Tým, že sa zameriava na najčastejšie zdroje XSS útokov a poskytuje jasné API, môže výrazne zvýšiť bezpečnosť Elm aplikácií bez výrazného nárastu komplexnosti.

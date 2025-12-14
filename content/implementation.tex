@@ -1,5 +1,17 @@
 \chapter{Implementácia návrhu}
 
+Evolúciou nášho návrhu sme prešli troma hlavnými fázami:
+
+\begin{enumerate}
+    \item \textbf{Ochrana vstupného vektora} pomocou nepriehľadných typov -- elegantné, ale nedostatočné riešenie.
+    \item \textbf{Middleware s TaskName} -- správny smer, ale príliš aplikačne-špecifický.
+    \item \textbf{Generický policy-based middleware} -- finálne riešenie s jasnou zodpovednosťou a maximálnou znovupoužiteľnosťou.
+\end{enumerate}
+
+Každá iterácia nás priblížila k jadru problému: XSS vzniká na hranici Elmu a JavaScriptu, a preto tam musí byť aj ochrana. Finálne riešenie poskytuje jednoduchý, ale efektívny mechanizmus, ktorý núti vývojára explicitne sa rozhodnúť, aká úroveň bezpečnosti je pre konkrétne dáta vhodná.
+
+Táto architektúra predstavuje pevný základ pre rozšírenie sanitizačného enginu v budúcnosti. Nasledujúce kroky budú zahŕňať implementáciu komplexnejšieho HTML parsera pre politiku `AllowSafeHtml` a URL validátora pre `AllowUrl`, pričom jadro architektúry zostane nezmenené.
+
 \section{Analýza Problému a Identifikácia Vektorov Útoku}
 
 Jazyk Elm je vo svojom jadre navrhnutý s dôrazom na bezpečnosť. Jeho systém vykresľovania pohľadov (view) štandardne escapuje všetky dynamické reťazce. Funkcia `Html.text` zabezpečuje, že reťazec ako \texttt{"<script>alert(1)</script>"} bude vložený do DOMu ako textový uzol (TextNode) a nie interpretovaný ako HTML.
@@ -8,7 +20,7 @@ Problém a hlavný vektor útoku teda nevzniká priamo v Elme, ale na jeho hrani
 
 \begin{enumerate}
     \item \textbf{Vstupný Vektor (JS $\rightarrow$ Elm):} Dáta (napr. z API alebo `localStorage`) vstupujú do Elmu z JavaScriptu. Ak vývojár v Elme tieto dáta nesprávne zobrazí použitím nebezpečných funkcií (napr. `Html.Attributes.property "innerHTML"`), môže dôjsť k DOM-based XSS.
-    
+
     \item \textbf{Výstupný Vektor (Elm $\rightarrow$ JS):} Dáta (napr. z formulára) sú poslané z Elmu do JavaScriptu cez porty. Elm v tomto bode žiadnu sanitizáciu nevykonáva. Ak externý JavaScript týmto dátam dôveruje a vloží ich do stránky pomocou nebezpečných funkcií (napr. `element.innerHTML = dataFromElm;`), dochádza k XSS.
 \end{enumerate}
 
@@ -193,13 +205,13 @@ Tento refaktoring priniesol niekoľko zásadných vylepšení:
 
 \begin{itemize}
     \item \textbf{Jednoduchosť:} Middleware má teraz jedinú zodpovednosť -- aplikovať bezpečnostnú politiku. Všetka aplikačná logika je v aplikačnej vrstve.
-    
+
     \item \textbf{Znovupoužiteľnosť:} Knižnicu možno použiť v akejkoľvek Elm aplikácii bez modifikácií. Vývojár ju importuje a okamžite môže začať posielať sanitizované dáta.
-    
+
     \item \textbf{Lepšia Demonštrácia:} Pre účely prezentácie a testovania sme vytvorili demo aplikáciu, ktorá ukazuje všetky štyri bezpečnostné politiky v akcii. Každá politika má vlastný input field a tlačidlo, čo umožňuje priamo pozorovať rozdiel v sanitizácii.
-    
+
     \item \textbf{Jasné API:} Funkcie `sendString` a `send` majú minimálne parametre -- iba politiku a dáta. Nie je potrebné rozhodovať sa o type úlohy alebo iných aplikačne-špecifických detailoch.
-    
+
     \item \textbf{Fokus na Bezpečnosť:} Odstránením `TaskName` sme zdôraznili, že podstatou knižnice je bezpečnostná politika, nie typovanie úloh.
 \end{itemize}
 
@@ -251,17 +263,3 @@ if (app.ports.sendToJS) {
 \end{lstlisting}
 
 JavaScript nemusí poznať detaily aplikačnej logiky -- dostane iba informáciu o aplikovanej politike a bezpečné dáta.
-
-\section{Záver Evolúcie Návrhu}
-
-Evolúciou nášho návrhu sme prešli troma hlavnými fázami:
-
-\begin{enumerate}
-    \item \textbf{Ochrana vstupného vektora} pomocou nepriehľadných typov -- elegantné, ale nedostatočné riešenie.
-    \item \textbf{Middleware s TaskName} -- správny smer, ale príliš aplikačne-špecifický.
-    \item \textbf{Generický policy-based middleware} -- finálne riešenie s jasnou zodpovednosťou a maximálnou znovupoužiteľnosťou.
-\end{enumerate}
-
-Každá iterácia nás priblížila k jadru problému: XSS vzniká na hranici Elmu a JavaScriptu, a preto tam musí byť aj ochrana. Finálne riešenie poskytuje jednoduchý, ale efektívny mechanizmus, ktorý núti vývojára explicitne sa rozhodnúť, aká úroveň bezpečnosti je pre konkrétne dáta vhodná.
-
-Táto architektúra predstavuje pevný základ pre rozšírenie sanitizačného enginu v budúcnosti. Nasledujúce kroky budú zahŕňať implementáciu komplexnejšieho HTML parsera pre politiku `AllowSafeHtml` a URL validátora pre `AllowUrl`, pričom jadro architektúry zostane nezmenené.

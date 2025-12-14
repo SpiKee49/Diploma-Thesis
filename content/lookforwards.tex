@@ -1,0 +1,260 @@
+\chapter{Výhľady na pokračovanie v práci}
+
+Implementácia middleware pre ochranu proti XSS útokom v jazyku Elm, ktorú sme predstavili v predchádzajúcej kapitole, predstavuje funkčný základ riešenia. V tejto kapitole načrtneme kroky, ktoré sú potrebné na dokončenie práce -- overenie riešenia, identifikáciu jeho obmedzení, návrhy na vylepšenie a zhodnotenie celkového prínosu.
+
+\section{Overenie funkčnosti riešenia}
+
+Kľúčovou otázkou po implementácii akéhokoľvek bezpečnostného riešenia je: \textit{skutočne chráni pred tým, pred čím má chrániť?} Pre overenie funkčnosti našej knižnice je potrebné vykonať systematické testovanie na viacerých úrovniach.
+
+\subsection{Testovanie jednotlivých bezpečnostných politík}
+
+Každá zo štyroch implementovaných bezpečnostných politík musí byť otestovaná s reprezentatívnou množinou XSS útočných vektorov. Plánujeme vytvoriť testovaciu maticu, ktorá systematicky pokryje:
+
+\begin{itemize}
+    \item \textbf{AllowTextOnly:} Overenie, že všetky HTML značky a atribúty sú odstránené, pričom čistý textový obsah zostane zachovaný. Testovanie na útočných kódoch ako \texttt{<script>}, \texttt{<img onerror=>}, inline event handlery.
+
+    \item \textbf{AllowSafeHtml:} Validácia, že nebezpečné elementy ako \texttt{<script>}, \texttt{<iframe>}, \texttt{<object>} sú odstránené, ale bezpečné formátovacie značky ako \texttt{<b>}, \texttt{<i>}, \texttt{<p>} zostávajú funkčné. Testovanie mutation XSS a vnorených útočných vektorov.
+
+    \item \textbf{AllowUrl:} Verifikácia, že nebezpečné protokoly ako \texttt{javascript:}, \texttt{data:text/html}, \texttt{vbscript:} sú blokované, zatiaľ čo legitímne \texttt{http:}, \texttt{https:}, \texttt{mailto:} sú povolené.
+
+    \item \textbf{Passthrough:} Konfirmácia, že politika skutočne prenáša dáta bez zmeny pre typy, ktoré to vyžadujú (čísla, boolean hodnoty, JSON objekty).
+\end{itemize}
+
+\subsection{Testovanie s reálnymi XSS útočnými databázami}
+
+Pre komplexné overenie plánujeme využiť existujúce, verejne dostupné XSS payloady:
+
+\begin{itemize}
+    \item \textbf{XSS Filter Evasion Cheat Sheet} -- obsahuje stovky variácií XSS útokov
+    \item \textbf{PayloadsAllTheThings} -- moderná, udržiavaná databáza
+    \item \textbf{OWASP XSS Attack Vectors} -- overené útoky zo security auditov
+\end{itemize}
+
+Tieto payloady budú systematicky testované proti každej politike. Cieľom nie je 100\% ochrana (čo je v praxi nedosiahnuteľné), ale demonštrácia, že bežné a známe útoky sú efektívne zablokované.
+
+\subsection{Porovnanie s existujúcimi riešeniami}
+
+Pre kontextualizáciu efektívnosti našej knižnice plánujeme vykonať porovnávacie testy s:
+
+\begin{itemize}
+    \item \textbf{DOMPurify} (JavaScript) -- referenčná implementácia HTML sanitizácie
+    \item \textbf{React's dangerouslySetInnerHTML} -- ako baseline úroveň ochrany v moderných frameworkoch
+    \item \textbf{Angular's DomSanitizer} -- príklad kontextovo závislej sanitizácie
+\end{itemize}
+
+Výsledky budú prezentované v tabuľke ukazujúcej, koľko percent známych útokov každé riešenie zablokuje pre jednotlivé kategórie (reflected XSS, stored XSS, DOM-based XSS).
+
+\section{Identifikované výhrady a obmedzenia}
+
+Žiadne bezpečnostné riešenie nie je dokonalé. Pre akademickú integritu je kritické explicitne pomenovať obmedzenia našej implementácie.
+
+\subsection{Obmedzenia aktuálnej implementácie sanitizačného enginu}
+
+\textbf{1. Primitívna sanitizácia AllowSafeHtml:}
+
+Aktuálna implementácia politiky \texttt{AllowSafeHtml} používa jednoduchú regex-based sanitizáciu, ktorá odstraňuje iba \texttt{<script>} značky:
+
+\begin{lstlisting}[language=Elm, caption={Súčasná implementácia AllowSafeHtml}, label={lst:current-safehtml}]
+AllowSafeHtml ->
+    Regex.replace 
+        (Regex.fromString "<script.*?</script>" 
+            |> Maybe.withDefault Regex.never)
+        (\_ -> "")
+        rawString
+\end{lstlisting}
+
+Táto implementácia \textbf{nezabezpečuje} proti:
+\begin{itemize}
+    \item Event handler atribútom (\texttt{onload}, \texttt{onerror}, \texttt{onclick}, atď.)
+    \item Nebezpečným značkám ako \texttt{<iframe>}, \texttt{<object>}, \texttt{<embed>}
+    \item CSS-based XSS cez \texttt{<style>} alebo inline \texttt{style} atribúty
+    \item SVG-based XSS cez \texttt{<svg>} elementy
+    \item Mutation XSS (mXSS) útokom
+\end{itemize}
+
+\textbf{2. Nedostatok HTML parsera:}
+
+Použitie regulárnych výrazov pre sanitizáciu HTML je známe ako problematické \cite{stackoverflow-regex-html}. HTML je kontextovo závislý jazyk, ktorý nemožno spoľahlivo spracovať regulárnymi výrazmi. Potrebujeme skutočný HTML parser, ktorý:
+\begin{itemize}
+    \item Analyzuje štruktúru HTML stromu
+    \item Rozozná validné vs. nevalidné značky
+    \item Identifikuje nebezpečné kombinácie atribútov
+    \item Správne ošetruje vnorené kontexty
+\end{itemize}
+
+\textbf{3. Chybná validácia URL:}
+
+Aktuálna implementácia politiky \texttt{AllowUrl} iba kontroluje, či URL nezačína na \texttt{javascript:}:
+
+\begin{lstlisting}[language=Elm, caption={Súčasná implementácia AllowUrl}, label={lst:current-url}]
+AllowUrl ->
+    if String.startsWith "javascript:" (String.toLower rawString) then
+        ""
+    else
+        rawString
+\end{lstlisting}
+
+Táto implementácia \textbf{ignoruje}:
+\begin{itemize}
+    \item \texttt{data:} URI scheme, ktoré môže obsahovať HTML
+    \item \texttt{vbscript:} pre staršie verzie Internet Explorer
+    \item URL encoding obfuscation (\texttt{ja\%76ascript:})
+    \item Medzery a null byte injection
+    \item Relatívne vs. absolútne URL validáciu
+\end{itemize}
+
+\subsection{Architektonické obmedzenia}
+
+\textbf{1. Žiadna ochrana vstupného vektora:}
+
+Ako sme diskutovali v implementačnej kapitole, naše riešenie sa zameriava výhradne na \textit{výstupný vektor} (Elm $\rightarrow$ JS). Dáta prichádzajúce do Elmu z JavaScriptu \textit{nie sú} automaticky sanitizované. Ak vývojár tieto dáta nesprávne zobrazí pomocou nebezpečných funkcií v Elme (napr. \texttt{Html.Attributes.property "innerHTML"}), XSS je stále možný.
+
+\textbf{2. Závislosť na disciplíne vývojára:}
+
+Náš middleware nemôže vynútiť svoje použitie. Ak vývojár:
+\begin{itemize}
+    \item Vytvorí svoj vlastný port modul
+    \item Použije \texttt{Passthrough} politiku pre používateľský vstup
+    \item Implementuje vlastnú sanitizáciu
+\end{itemize}
+...bezpečnostné záruky sú stratené.
+
+\textbf{3. Chýbajúca integrácia s Elm package ekosystémom:}
+
+Aktuálne je riešenie standalone. Pre maximálny prínosu by bolo ideálne:
+\begin{itemize}
+    \item Publikovať ako Elm package
+    \item Integrovať s populárnymi Elm routermi a HTTP knižnicami
+    \item Poskytnúť vopred nakonfigurované politiky pre bežné use-case
+\end{itemize}
+
+\section{Metodológia vyhodnotenia}
+
+Pre objektívne zhodnotenie prínosu našej práce navrhneme nasledujúce metriky:
+
+\subsection{Kvantitatívne metriky}
+
+\begin{table}[h]
+    \centering
+    \caption{Návrh hodnotiacich metrík}
+    \label{tab:evaluation-metrics}
+    \begin{tabular}{|l|l|c|}
+        \hline
+        \textbf{Metrika}     & \textbf{Meranie}                        & \textbf{Cieľ} \\
+        \hline
+        XSS Detection Rate   & \% blokovaných útokov z testovacej sady & $>$ 95\%      \\
+        False Positive Rate  & \% legitímneho obsahu zablokovaného     & $<$ 5\%       \\
+        Performance Overhead & Čas sanitizácie vs. baseline            & $<$ 10ms      \\
+        API Complexity       & Počet konceptov na naučenie             & $<$ 5         \\
+        Lines of Code        & Veľkosť implementácie                   & $<$ 500 LOC   \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Kvalitatívne hodnotenie}
+
+\textbf{1. Použiteľnosť (Usability):}
+\begin{itemize}
+    \item Jasnosť API -- môže začiatočník použiť knižnicu bez hlbokých security znalostí?
+    \item Dokumentácia -- sú príklady použitia dostupné a zrozumiteľné?
+    \item Error messages -- sú chybové hlášky informatívne?
+\end{itemize}
+
+\textbf{2. Integrovateľnosť:}
+\begin{itemize}
+    \item Dá sa knižnica použiť v existujúcej aplikácii bez refaktoringu?
+    \item Je kompatibilná s populárnymi Elm packages?
+\end{itemize}
+
+\textbf{3. Udržateľnosť:}
+\begin{itemize}
+    \item Je kód dobre štruktúrovaný a dokumentovaný?
+    \item Sú prítomné testy pre kritické funkcie?
+    \item Je jasné, ako pridať novú bezpečnostnú politiku?
+\end{itemize}
+
+\section{Rozdelenie práce do kapitol}
+
+Na základe vyššie uvedených bodov navrhneme štruktúru zostávajúcich kapitol diplomové práce:
+
+\subsection{Kapitola: Testovanie a vyhodnotenie}
+
+Táto kapitola by mala obsahovať:
+
+\begin{enumerate}
+    \item \textbf{Testovacia metodológia} -- opis prístupu k testovaniu
+    \item \textbf{Testovacia sada} -- zoznam použitých XSS payloadov
+    \item \textbf{Výsledky testov} -- tabuľky a grafy ukazujúce efektívnosť
+    \item \textbf{Porovnanie s alternatívami} -- benchmarking proti DOMPurify, React, Angular
+    \item \textbf{Performance analýza} -- meranie výkonnostného dopadu
+\end{enumerate}
+
+\subsection{Kapitola: Diskusia obmedzení a možných vylepšení}
+
+Táto kapitola by mala obsahovať:
+
+\begin{enumerate}
+    \item \textbf{Identifikované slabiny} -- detailný rozbor obmedzení (sekcia \ref{sec:limitations})
+    \item \textbf{Návrhty riešení} -- konkrétne kroky na odstránenie slabín
+    \item \textbf{Trade-offs} -- diskusia o kompromisoch (bezpečnosť vs. výkon, jednoduchosť vs. flexibilita)
+    \item \textbf{Alternatívne prístupy} -- čo mohlo byť urobené inak
+    \item \textbf{Budúca práca} -- long-term vízia pre vývoj knižnice
+\end{enumerate}
+
+\subsection{Kapitola: Záver}
+
+Záverečná kapitola by mala obsahovať:
+
+\begin{enumerate}
+    \item \textbf{Zhrnutie prínosu} -- čo práca priniesla
+    \item \textbf{Dosiahnuté ciele} -- mapovanie na pôvodne stanovené ciele
+    \item \textbf{Praktická aplikovateľnosť} -- kedy a ako použiť riešenie
+    \item \textbf{Teoretický príspevok} -- čo práca priniesla do akademickej diskusie
+    \item \textbf{Odporúčania} -- pre vývojárov a Elm komunitu
+\end{enumerate}
+
+\section{Časový harmonogram dokončenia}
+
+Pre dokončenie práce navrhneme nasledujúci harmonogram:
+
+\begin{table}[h]
+    \centering
+    \caption{Časový plán dokončenia práce}
+    \label{tab:timeline}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Týždeň} & \textbf{Aktivita}             & \textbf{Výstup}    \\
+        \hline
+        1--2            & Implementácia testovacej sady & 50+ testov         \\
+                        & Testovanie politík            & Test report        \\
+        \hline
+        3               & Porovnanie s alternatívami    & Benchmark report   \\
+                        & Performance merania           & Performance report \\
+        \hline
+        4               & Písanie kapitoly Testovanie   & Kapitola (draft)   \\
+        \hline
+        5               & Identifikácia obmedzení       & Zoznam slabín      \\
+                        & Návrhy vylepšení              & Implementačný plán \\
+        \hline
+        6               & Písanie kapitoly Diskusia     & Kapitola (draft)   \\
+        \hline
+        7               & Písanie záverov               & Záverečná kapitola \\
+                        & Revízia celej práce           & Kompletný draft    \\
+        \hline
+        8               & Jazyková korektúra            & Finálna verzia     \\
+                        & Príprava prezentácie          & Obhajoba slides    \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Záver kapitoly}
+
+V tejto kapitole sme načrtli komplexný plán na dokončenie diplomovej práce. Identifikovali sme tri kľúčové oblasti, ktoré vyžadujú pozornosť:
+
+\begin{enumerate}
+    \item \textbf{Overenie riešenia} -- systematické testovanie funkčnosti a efektívnosti
+    \item \textbf{Identifikácia obmedzení} -- čestné pomenovanie slabín a nedostatkov aktuálnej implementácie
+    \item \textbf{Návrhy vylepšení} -- konkrétne kroky, ako riešenie posunúť na produkčnú úroveň
+\end{enumerate}
+
+V nasledujúcich kapitolách tieto body rozpracujeme do detailnej podoby s konkrétnymi výsledkami, meraniami a závermi.
