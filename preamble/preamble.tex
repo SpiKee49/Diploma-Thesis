@@ -4,7 +4,11 @@
 % môžeš ponechať Latin Modern, ale už ako Unicode font
 \setmainfont{Times New Roman}
 \setsansfont{Arial}
-\setmonofont{Consolas}
+\IfFontExistsTF{Consolas}{
+    \setmonofont{Consolas}
+}{
+    \setmonofont{Menlo}
+}
 
 \usepackage[slovak]{babel}
 
@@ -98,8 +102,8 @@
     Vytvorenie knižnice pre ochranu pred Cross-Site Script útokmi v prostredí jazyka Elm}
 \newcommand{\myName}[0] {René Bukovina}
 \newcommand{\mySupervisor}[0] {Ing. Ivan Kapustík}
-\newcommand{\myEvidenceNumber}[0] {FIIT-100241-110772}
-\newcommand{\myDate}[0] {Máj 2025}
+\newcommand{\myEvidenceNumber}[0] {FIIT-?????-110772}
+\newcommand{\myDate}[0] {Január 2026}
 \newcommand{\myStudyProgram}[0] {Inteligentné Softvérové Systémy}
 \newcommand{\myDegreeCourse}[0] {Informatika}
 \newcommand{\myInstitute}[0] {Ústav informatiky, informačných systémov a softvérového inžinierstva, FIIT STU, Bratislava}

@@ -85,7 +85,7 @@ Po hlbšej analýze sme tento prístup prehodnotili a rozhodli sme sa ho opusti�
 
 Dospeli sme k záveru, že skutočné riziko nespočíva vo vnútri Elmu, ale na jeho hraniciach. Preto sme sa rozhodli presunúť našu bezpečnostnú logiku práve tam.
 
-\section{Prvá Iterácia: Middleware s Typovo Špecifickými Úlohami}
+\section{Middleware s Typovo Špecifickými Úlohami}
 
 Naším prvým architektonickým riešením bolo vytvorenie centrálneho "middleware" modulu, ktorý slúžil ako jediný, kontrolovaný bod pre všetku odchádzajúcu komunikáciu (Riešenie Vektora \#2).
 
@@ -138,7 +138,7 @@ Po implementácii a testovaní tejto verzie sme identifikovali niekoľko problé
     \item \textbf{Obmedzená Flexibilita:} Pridanie novej úlohy vyžadovalo modifikáciu jadra knižnice, čo porušovalo princíp Open/Closed.
 \end{itemize}
 
-\section{Finálna Iterácia: Generický Policy-Based Middleware}
+\section{Generický Middleware založený iba na politikách}
 
 Na základe identifikovaných problémov sme vykonali refaktoring do čistejšej, generickejšej architektúry.
 
@@ -244,7 +244,7 @@ update msg model =
             )
 \end{lstlisting}
 
-Všimnite si absenciu akéhokoľvek "task name" parametra. Vývojár sa zameriava iba na to, akú bezpečnostnú politiku chce aplikovať na konkrétne dáta.
+Za povšimnutie stoji absencia akéhokoľvek "task name" parametra. Vývojár sa zameriava iba na to, akú bezpečnostnú politiku chce aplikovať na konkrétne dáta.
 
 \subsection{JavaScript Strana}
 

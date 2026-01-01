@@ -4,24 +4,28 @@
 \section*{Annotation}
 
 \begin{minipage}[t]{1\columnwidth}%
-Slovak University of Technology Bratislava 
+    Slovak University of Technology Bratislava
 
-Faculty of Informatics and Information Technologies
+    Faculty of Informatics and Information Technologies
 
-Degree Course: \myStudyProgram\\
+    Degree Course: \myStudyProgram\\
 
-Author: \myName
+    Author: \myName
 
-Diploma thesis: \myTitle
+    Diploma thesis: Creating a Library for Protection Against Cross-Site Scripting Attacks in Elm Language Environment
 
-Supervisor: \mySupervisor
+    Supervisor: \mySupervisor
 
-May 2024%
+    January 2026%
 \end{minipage}
 
 \bigskip{}
 
-\lipsum[2]
+Cross-Site Scripting (XSS) is one of the most prevalent web application vulnerabilities that, despite over 20 years of history, remains a current security threat. This master's thesis analyzes XSS attacks and proposes a solution for their elimination in the context of the Elm functional programming language.
+The thesis systematically analyzes three main types of XSS attacks (reflected, stored, DOM-based) including advanced techniques such as mutation XSS. It examines in detail the evolution of attack methods from primitive script injections to sophisticated evasion techniques utilizing encoding, polyglots, and differences in HTML parsing between server and browser. Existing defense mechanisms (input validation, output encoding, CSP, HttpOnly cookies) and their limitations are also analyzed.
+The thesis compares approaches to XSS protection in major JavaScript frameworks (React, Angular, Vue.js, Svelte) and identifies their common weaknesses – the presence of escape mechanisms allowing developers to bypass built-in protection. In contrast to these solutions, it analyzes the unique properties of the Elm language, which, thanks to its strong type system, immutability, and purely functional approach, naturally eliminates many XSS vectors.
+The main contribution of the thesis is the design and implementation of a middleware library for Elm that provides protection at the critical point – at the boundary between Elm and JavaScript during communication via ports. The solution implements four security policies (AllowTextOnly, AllowSafeHtml, AllowUrl, Passthrough) with context-dependent sanitization. The architecture is designed as a generic, reusable library that forces developers to explicitly specify the security level for each communication with external JavaScript.
+The thesis also identifies limitations of the proposed solution, particularly the primitive implementation of HTML sanitization and the absence of a protective mechanism for the input vector (JavaScript - Elm). It proposes concrete improvement steps including implementation of a comprehensive HTML parser and URL validator.
 
 \newpage{}\thispagestyle{empty}
 
@@ -34,24 +38,27 @@ May 2024%
 \section*{Anotácia}
 
 \begin{minipage}[t]{1\columnwidth}%
-Slovenská technická univerzita v Bratislave
+    Slovenská technická univerzita v Bratislave
 
-Fakulta informatiky a informačných technológií
+    Fakulta informatiky a informačných technológií
 
-Študijný program: \myStudyProgram\\
+    Študijný program: \myStudyProgram\\
 
-Autor: \myName
+    Autor: \myName
 
-Bakalárska práca: \myTitle
+    Diplomová práca: \myTitle
 
-Vedúci bakalárskeho projektu: \mySupervisor
+    Vedúci bakalárskeho projektu: \mySupervisor
 
-\myDate%
+    \myDate%
 \end{minipage}
 
 \bigskip{}
-
-\lipsum[2]
+Cross-Site Scripting (XSS) patrí medzi najrozšírenejšie zraniteľnosti webových aplikácií, ktorá napriek viac ako 20-ročnej histórii zostáva aktuálnou bezpečnostnou hrozbou. Táto diplomová práca sa zaoberá analýzou XSS útokov a návrhom riešenia pre ich elimináciu v kontexte funkcionálneho programovacieho jazyka Elm.
+Práca systematicky analyzuje tri hlavné typy XSS útokov (reflected, stored, DOM-based) vrátane pokročilých techník ako mutation XSS. Detailne skúma evolúciu útočných metód od primitívnych skriptových injekcií až po sofistikované obchádzacie techniky využívajúce kódovanie, polygloty a rozdiely v parsovaní HTML medzi serverom a prehliadačom. Analyzované sú aj existujúce obranné mechanizmy (validácia vstupov, kódovanie výstupov, CSP, HttpOnly cookies) a ich limitácie.
+Práca porovnáva prístupy k ochrane proti XSS v hlavných JavaScriptových frameworkoch (React, Angular, Vue.js, Svelte) a identifikuje ich spoločné slabiny – prítomnosť únikových mechanizmov umožňujúcich obísť vstavanú ochranu. V kontraste s týmito riešeniami analyzuje jedinečné vlastnosti jazyka Elm, ktorý vďaka silnému typovému systému, imutabilite a čisto funkcionálnemu prístupu prirodzene eliminuje mnohé XSS vektory.
+Hlavným prínosom práce je návrh a implementácia middleware knižnice pre Elm, ktorá poskytuje ochranu na kritickom mieste – na hranici medzi Elmom a JavaScriptom pri komunikácii cez porty. Riešenie implementuje štyri bezpečnostné politiky (AllowTextOnly, AllowSafeHtml, AllowUrl, Passthrough) s kontextovo závislou sanitizáciou. Architektúra je navrhnutá ako generická, znovupoužiteľná knižnica, ktorá núti vývojárov explicitne stanoviť bezpečnostnú úroveň pre každú komunikáciu s externým JavaScriptom.
+Práca identifikuje aj limitácie navrhovaného riešenia, najmä primitívnu implementáciu HTML sanitizácie a absenciu ochranného mechanizmu pre vstupný vektor (JavaScript - Elm). Navrhuje konkrétne kroky na vylepšenie vrátane implementácie komplexného HTML parsera a URL validátora.
 
 
 \newpage{}\thispagestyle{empty}\medskip{}
