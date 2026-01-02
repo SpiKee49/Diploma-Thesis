@@ -1,14 +1,9 @@
 \usepackage{fontspec}
 \defaultfontfeatures{Ligatures=TeX}
 
-% môžeš ponechať Latin Modern, ale už ako Unicode font
 \setmainfont{Times New Roman}
 \setsansfont{Arial}
-\IfFontExistsTF{Consolas}{
-    \setmonofont{Consolas}
-}{
-    \setmonofont{Menlo}
-}
+\setmonofont{Courier New}
 
 \usepackage[slovak]{babel}
 
@@ -172,3 +167,13 @@
 
 \titleformat{\chapter}[display]
 {\normalfont\bfseries}{}{0pt}{\Huge}
+
+\lstset{
+style=mystyle,
+inputencoding=utf8,
+extendedchars=true,
+literate={á}{{\'a}}1 {č}{{\v{c}}}1 {ď}{{\v{d}}}1 {é}{{\'e}}1 {í}{{\'i}}1
+{ľ}{{\v{l}}}1 {ĺ}{{\'l}}1 {ň}{{\v{n}}}1 {ó}{{\'o}}1 {ô}{{\^o}}1
+{ŕ}{{\'r}}1 {š}{{\v{s}}}1 {ť}{{\v{t}}}1 {ú}{{\'u}}1 {ý}{{\'y}}1
+{ž}{{\v{z}}}1
+}

